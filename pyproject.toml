@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "my_project"  # Назва вашого проєкту (може бути будь-яка)
+version = "0.1.0"
+
+[tool.setuptools]
+packages = ["GUI", "Actors", "Orders", "Materials", "Production", "Utils"]
