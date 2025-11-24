@@ -23,10 +23,6 @@ class MainApp(tk.Tk):
 
         self.current_frame = frame_class(self.container, self)
         self.current_frame.pack(fill="both", expand=True)
-    def run(self):
-        app = MainApp()
-        app.mainloop()
-
 
 if __name__ == "__main__":
     app = MainApp()
