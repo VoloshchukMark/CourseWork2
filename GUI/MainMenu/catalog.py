@@ -2,9 +2,12 @@ import sys
 import os
 import tkinter as tk
 from tkinter import ttk
-import time
+import io
+from PIL import Image, ImageTk
+import threading
 
 from Utils import tkinter_general
+from Utils import mongodb_functions
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
@@ -17,12 +20,14 @@ class CatalogView(tk.Frame):
         super().__init__(parent, bg="white")
 
         self.is_loading = False  # Щоб не запускати завантаження двічі одночасно
+        self.all_loaded = False # Чи завантажені всі товари
         self.current_product_index = 0 # Лічильник товарів (для бази даних)
         self.grid_row = 0        # Поточний рядок сітки
         self.grid_col = 0        # Поточна колонка сітки
 
-        self.create_widgets()
+        self.image_refs = []
 
+        self.create_widgets()
         self.load_more_products()
     
     def create_widgets(self):
@@ -115,40 +120,135 @@ class CatalogView(tk.Frame):
             self.load_more_products()
 
     def load_more_products(self):
-        self.is_loading = True
-        print(f"Loading data... Offset: {self.current_product_index}")
-        
-        # Імітація запиту до бази даних (тут ви будете брати реальні дані)
-        # Наприклад: new_products = database.get_products(limit=10, offset=self.current_product_index)
-        new_products = [f"Product {i}" for i in range(self.current_product_index, self.current_product_index + 12)]
-        
-        if not new_products:
-            self.is_loading = False
+        """Запускає процес завантаження у фоновому режимі"""
+        if self.is_loading or self.all_loaded: # Якщо вже вантажимось - виходимо
             return
 
-        # Налаштування колонок (3 колонки)
+        self.is_loading = True
+        
         self.scrollable_frame.columnconfigure(0, weight=1)
         self.scrollable_frame.columnconfigure(1, weight=1)
         self.scrollable_frame.columnconfigure(2, weight=1)
 
-        # Додавання карток
-        for name in new_products:
-            self.create_product_card(name)
-            
-        self.current_product_index += len(new_products)
+        # --- ДОДАНО: Створюємо Label "Завантаження..." ---
+        # Ми ставимо його в наступний рядок (grid_row + 1) і розтягуємо на 3 колонки (columnspan=3)
+        self.loading_label = tk.Label(self.scrollable_frame, text="⏳ Завантажуються дані...", 
+                                      font=("Arial", 12, "italic"), fg="gray", bg="white")
+        self.loading_label.grid(row=self.grid_row + 1, column=0, columnspan=3, pady=20, sticky="ew")
         
-        # Даємо Tkinter час оновити інтерфейс перед тим, як дозволити нове завантаження
-        self.after(500, lambda: setattr(self, 'is_loading', False))
+        # Оновлюємо інтерфейс примусово, щоб напис з'явився миттєво до запуску потоку
+        self.scrollable_frame.update_idletasks() 
 
-    def create_product_card(self, name):
-        # Створення однієї картки
-        card = tk.Frame(self.scrollable_frame, bg="#f0f0f0", bd=1, relief="solid")
-        card.grid(row=self.grid_row, column=self.grid_col, padx=10, pady=40, sticky="nsew")
+        # Запускаємо потік
+        threading.Thread(target=self._background_loader, daemon=True).start()
+
+    def _background_loader(self):
+        """Цей код виконується паралельно і не блокує вікно"""
+        processed_items = []
+        try:
+            batch_size = 12
+            
+            # 1. Запит до бази даних
+            raw_data = mongodb_functions.get_documents_paginated(
+                collection_name="models",
+                skip=self.current_product_index,
+                limit=batch_size,
+                projection={"model_name": 1, "price": 1, "image": 1}
+            )
+
+            # 2. Підготовка картинок
+            for item in raw_data:
+                pil_image = None
+                image_binary = item.get("image")
+                
+                if image_binary:
+                    try:
+                        img_data = io.BytesIO(image_binary)
+                        pil_img_raw = Image.open(img_data)
+                        pil_img_raw.thumbnail((200, 200))
+                        pil_image = pil_img_raw
+                    except Exception as e:
+                        print(f"Помилка обробки фото для {item.get('model_name')}: {e}")
+                        # Не перериваємо цикл, просто цей товар буде без фото
+                
+                processed_items.append({
+                    "name": item.get("model_name", "Unknown"),
+                    "price": item.get("price", 0),
+                    "pil_image": pil_image
+                })
+
+        except Exception as e:
+            print(f"Критична помилка у потоці: {e}")
+            # processed_items залишиться порожнім або частково заповненим
         
-        tk.Label(card, text=name, font=("Arial", 12), bg="#f0f0f0").pack(pady=40)
+        finally:
+            # 3. Цей блок виконається ЗАВЖДИ, навіть якщо була помилка.
+            # Ми обов'язково повідомляємо головний потік, що роботу завершено.
+            self.after(0, self._update_ui_on_main_thread, processed_items)
+
+    def _update_ui_on_main_thread(self, new_items):
+        """Цей метод виконується в головному потоці і малює віджети"""
         
-        # Логіка сітки (Grid Logic)
+        # Перевірка: якщо користувач вже закрив вкладку каталогу, поки вантажились дані
+        if not self.winfo_exists():
+            return
+        
+        if hasattr(self, 'loading_label') and self.loading_label:
+            self.loading_label.destroy()
+            self.loading_label = None
+
+        if not new_items:
+            self.show_end_of_list_message() # Ваша функція "На даний момент все"
+            self.is_loading = False
+            return
+
+        self.scrollable_frame.columnconfigure(0, weight=1)
+        self.scrollable_frame.columnconfigure(1, weight=1)
+        self.scrollable_frame.columnconfigure(2, weight=1)
+
+        # Створення карток
+        for item in new_items:
+            self.create_product_card(item)
+
+        # Оновлюємо лічильник
+        self.current_product_index += len(new_items)
+
+        batch_size = 12
+        if len(new_items) < batch_size:
+            self.all_loaded = True
+            self.show_end_of_list_message()
+        
+        # Знімаємо прапорець завантаження
+        self.is_loading = False
+
+    def create_product_card(self, item_data):
+        name = item_data["name"]
+        price = item_data["price"]
+        pil_image = item_data["pil_image"] # Це вже готовий PIL Image, підготовлений у потоці
+
+        card = tk.Frame(self.scrollable_frame, bg="#ffffff", bd=1, relief="ridge")
+        card.grid(row=self.grid_row, column=self.grid_col, padx=10, pady=10, sticky="nsew")
+        
+        # Створення ImageTk (тільки в головному потоці!)
+        if pil_image:
+            photo = ImageTk.PhotoImage(pil_image)
+            self.image_refs.append(photo) # Зберігаємо посилання
+            tk.Label(card, image=photo, bg="#ffffff").pack(pady=(10, 5))
+        else:
+            tk.Label(card, text="No Image", bg="#eee", width=20, height=10).pack(pady=(10, 5))
+
+        tk.Label(card, text=name, font=("Arial", 12, "bold"), bg="#ffffff").pack()
+        tk.Label(card, text=f"{price} грн", font=("Arial", 11), fg="green", bg="#ffffff").pack(pady=(0, 10))
+
+        # Логіка сітки
         self.grid_col += 1
-        if self.grid_col > 2: # Якщо 3 колонки заповнені (0, 1, 2)
+        if self.grid_col > 2:
             self.grid_col = 0
             self.grid_row += 1
+
+    def show_end_of_list_message(self):
+        """Показує повідомлення внизу, що товарів більше немає"""
+        # Створюємо лейбл на всю ширину в наступному рядку
+        lbl_end = tk.Label(self.scrollable_frame, text="На даний момент все", 
+                           font=("Arial", 10, "italic"), fg="gray", bg="white")
+        lbl_end.grid(row=self.grid_row + 1, column=0, columnspan=3, pady=20)

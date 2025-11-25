@@ -54,6 +54,7 @@ class MainFrameView(tk.Frame):
         # Кнопки навігації (Зверніть увагу на command)
         self.create_nav_button(header_frame, "Catalog", lambda: self.switch_content(CatalogView), side=tk.LEFT)
         self.create_nav_button(header_frame, "Info", lambda: self.switch_content(InfoView), side=tk.LEFT)
+        self.create_nav_button(header_frame, "Editor", command=self.open_editor, side=tk.RIGHT)
         
         self.create_nav_button(header_frame, "My Orders", lambda: print("Orders clicked"), side=tk.RIGHT)
         self.create_nav_button(header_frame, "Account", lambda: self.switch_content(AccountView), side=tk.RIGHT)
@@ -81,5 +82,13 @@ class MainFrameView(tk.Frame):
         
         # Зберігаємо посилання на поточний фрейм, якщо треба
         self.current_content_frame = new_frame
+    
+    def open_editor(self):
+        """Відкриває вікно редактора"""
+        from GUI.Editor.editor_frame import EditorFrameView
+
+        editor_window = EditorFrameView()
+
+        editor_window.focus_set()
 
     

@@ -12,7 +12,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
-class ModelInfoCreatorFrame(tk.Frame):
+class FabricInfoCreatorFrame(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, bg="#ffffff")
         self.controller = controller
@@ -43,13 +43,16 @@ class ModelInfoCreatorFrame(tk.Frame):
         self.fields_Frame = tk.Frame(self, bg="#ffffff")
         self.fields_Frame.grid(row=0, column=1, sticky="nsew", padx=(10, 20), pady=20)
 
-        tk.Label(self.fields_Frame, text="Model's parameters", font=("Arial", 16), 
+        tk.Label(self.fields_Frame, text="Fabric's parameters", font=("Arial", 16), 
                 bg="#FFFFFF", fg="black").pack(side=tk.TOP, padx=20, pady=5)
-        self.entry_model_name = self.create_field(self.fields_Frame, "Model Name:", "entry")
+        self.entry_model_name = self.create_field(self.fields_Frame, "Fabric Name:", "entry")
         self.text_description = self.create_field(self.fields_Frame, "Description:", "text")
-        self.text_entry_recomended_fabric = self.create_field(self.fields_Frame, "Recommended Fabric:", "text")
-        self.text_recomended_accessories = self.create_field(self.fields_Frame, "Recommended Accessories:", "text")
-        self.entry_model_price = self.create_field(self.fields_Frame, "Price:", "entry")
+        self.entry_fabric_manufacturer_id = self.create_field(self.fields_Frame, "Fabric Manufacturer ID:", "entry")
+        self.entry_fabric_color = self.create_field(self.fields_Frame, "Fabric Color:", "entry")
+        self.entry_fabric_texture = self.create_field(self.fields_Frame, "Fabric Texture:", "entry")
+        self.entry_price_per_meter = self.create_field(self.fields_Frame, "Price per Meter:", "entry")
+        self.width_in_meters = self.create_field(self.fields_Frame, "Width in Meters:", "entry")
+
         self.check_var_in_stock = self.create_field(self.fields_Frame, "In Stock:", "checkbutton")
 
         self.enter_Button = tk.Button(self.fields_Frame, text="Enter Model Info", height=2, command=self.handle_enter)
@@ -103,16 +106,24 @@ class ModelInfoCreatorFrame(tk.Frame):
             checkbox = tk.Checkbutton(frame, variable=var, bg="#ffffff")
             checkbox.pack(side=tk.RIGHT, padx=5)
             return var
-    
-    def get_model_info(self):
-        try:
-            # Якщо поле пусте, ставимо 0, або видаємо помилку (за вашим вибором)
-            price_val = self.entry_model_price.get() # type: ignore
-            price = float(price_val) if price_val else 0.0
-        except ValueError:
-            messagebox.showerror("Помилка", "Ціна повинна бути числом (наприклад: 1200 або 1200.50)")
-            return None
         
+    def entry_value_check(self, entry_widget, field_name):
+        try:
+            raw_value = entry_widget.get()
+            value = float(raw_value) if raw_value else 0.0
+            return value
+        except ValueError:
+            messagebox.showerror("Помилка", f"{field_name} повинно бути числом (наприклад: 1.5 або 2)")
+            return None
+    
+    def get_fabric_info(self):
+        price_per_meter = self.entry_value_check(self.entry_price_per_meter, "Price per Meter")
+        width_in_meters = self.entry_value_check(self.width_in_meters, "Width in Meters")
+        fabric_manufacturer_id = self.entry_value_check(self.entry_fabric_manufacturer_id, "Fabric Manufacturer ID")
+        if price_per_meter is None or width_in_meters is None or fabric_manufacturer_id is None:
+            messagebox.showerror("Error", "Please fill all fields with correct values.")
+            return None
+
         image_binary = None
 
         if self.current_file_path and os.path.exists(self.current_file_path):
@@ -148,28 +159,35 @@ class ModelInfoCreatorFrame(tk.Frame):
 
         doc = {
             "_id": mongodb_functions.get_next_sequence("model_id"),
-            "model_name": self.entry_model_name.get(), # type: ignore
+            "fabric_name": self.entry_model_name.get(), # type: ignore
             "description": self.text_description.get("1.0", tk.END).strip(), # type: ignore
-            "recommended_fabric": self.text_entry_recomended_fabric.get("1.0", tk.END).strip(), # type: ignore
-            "recommended_accessories": self.text_recomended_accessories.get("1.0", tk.END).strip(), # type: ignore
-            "price": self.entry_model_price.get(), # type: ignore
+            "fabric_color": self.entry_fabric_color.get(), # type: ignore
+            "fabric_texture": self.entry_fabric_texture.get(), # type: ignore
+            "fabric_manufacturer_id": fabric_manufacturer_id,
+            "price_per_meter": price_per_meter,
+            "width_in_meters": width_in_meters,
             "in_stock": bool(self.check_var_in_stock.get()), # type: ignore
+            "full_price": None,
             "image": image_binary
+            
         }
         return doc
     
     def handle_enter(self):
-        model_info = self.get_model_info()
-        mongodb_functions.upload_to_db("models", model_info)
-        self.clear_fields()
+        fabric_info = self.get_fabric_info()
+        
+        if mongodb_functions.upload_to_db("fabrics", fabric_info):
+            self.clear_fields()
     
     def clear_fields(self):
-        self.entry_model_name.delete(0, tk.END) # type: ignore
-        self.text_description.delete("1.0", tk.END) # type: ignore
-        self.text_entry_recomended_fabric.delete("1.0", tk.END) # type: ignore
-        self.text_recomended_accessories.delete("1.0", tk.END) # type: ignore
-        self.entry_model_price.delete(0, tk.END) # type: ignore
-        self.check_var_in_stock.set(0) # type: ignore
+        self.entry_model_name.delete(0, tk.END) #type: ignore
+        self.text_description.delete("1.0", tk.END) #type: ignore
+        self.entry_fabric_manufacturer_id.delete(0, tk.END) #type: ignore
+        self.entry_fabric_color.delete(0, tk.END) #type: ignore
+        self.entry_fabric_texture.delete(0, tk.END) #type: ignore
+        self.entry_price_per_meter.delete(0, tk.END) #type: ignore
+        self.width_in_meters.delete(0, tk.END) #type: ignore
+        self.check_var_in_stock.set(0)   #type: ignore
         self.lbl_path_text.config(text="File is not selected")
         self.lbl_preview.config(image="", text="Place for a preview")
         self.current_file_path = None

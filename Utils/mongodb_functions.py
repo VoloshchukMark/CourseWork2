@@ -7,6 +7,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 ph = PasswordHasher()
 from tkinter import messagebox
+from bson.binary import Binary
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
@@ -104,3 +105,35 @@ def get_user(entered_login):
         else:
             messagebox.showerror("Error", "No user with such Login!")
             return False
+
+def upload_to_db(collection, doc):
+    if collection and collection == "models":
+        try:
+            mongodb_connection.models_collection.insert_one(doc)
+            messagebox.showinfo("Success", "Model information has been added to the database.")
+            return True
+        except Exception as e:
+            messagebox.showerror("Database Error", f"Failed to insert model info: {e}")
+            return False
+    elif collection and collection == "fabrics":
+        try:
+            mongodb_connection.fabric_collection.insert_one(doc)
+            messagebox.showinfo("Success", "Fabric information has been added to the database.")
+            return True
+        except Exception as e:
+            messagebox.showerror("Database Error", f"Failed to insert fabric info: {e}")
+            return False
+        
+def get_documents_paginated(collection_name, skip, limit, projection=None):
+    """
+    Отримує список документів з пагінацією.
+    skip: скільки записів пропустити
+    limit: скільки записів взяти
+    """
+    try:
+        collection = mongodb_connection.db[collection_name]
+        cursor = collection.find({}, projection).skip(skip).limit(limit)
+        return list(cursor)
+    except Exception as e:
+        print(f"Error fetching data: {e}")
+        return []

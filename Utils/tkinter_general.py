@@ -1,5 +1,7 @@
 import sys
 import os
+from bson.binary import Binary
+from PIL import Image, ImageTk
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)

@@ -1,7 +1,7 @@
 import tkinter as tk
 
-from GUI.Authentication import login
-from GUI.MainMenu import main_frame
+from GUI.Authentication.login import LoginView
+from GUI.MainMenu.main_frame import MainFrameView
 
 class MainApp(tk.Tk):
     def __init__(self):
@@ -15,7 +15,7 @@ class MainApp(tk.Tk):
 
         self.current_frame = None
 
-        self.switch_frame(main_frame.MainFrameView)
+        self.switch_frame(LoginView)
 
     def switch_frame(self, frame_class):
         if self.current_frame is not None:

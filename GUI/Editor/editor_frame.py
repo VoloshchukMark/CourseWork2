@@ -4,6 +4,7 @@ import tkinter as tk
 
 from Utils import tkinter_general
 from GUI.Editor.model_info_creator import ModelInfoCreatorFrame
+from GUI.Editor.fabric_info_creator import FabricInfoCreatorFrame
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
@@ -11,12 +12,13 @@ sys.path.append(project_root)
 
 
 # --- Головний клас ---
-class EditorFrameView(tk.Tk):
+class EditorFrameView(tk.Toplevel):
     def __init__(self):
         super().__init__()
         
         self.title("Atelier Editor")
         tkinter_general.center_window(self, 800, 800) 
+        self.configure()
 
         # 1. Створюємо загальний контейнер
         self.container = tk.Frame(self, bg="white")
@@ -38,7 +40,7 @@ class EditorFrameView(tk.Tk):
 
         # Кнопки навігації (Зверніть увагу на command)
         self.create_nav_button(sidebar_frame, "Model Info Creator", lambda: self.switch_content(ModelInfoCreatorFrame), side=tk.TOP)
-        self.create_nav_button(sidebar_frame, "Model Info Editor", lambda: self.switch_content(ModelInfoCreatorFrame), side=tk.TOP)
+        self.create_nav_button(sidebar_frame, "Model Info Editor", lambda: self.switch_content(FabricInfoCreatorFrame), side=tk.TOP)
 
     def create_nav_button(self, parent, text, command, side):
         btn = tk.Button(parent, text=text, font=("Arial", 12), bg="#e6ccff", fg="black",

@@ -17,8 +17,8 @@ try:
 
     keys_collection = db["keys"]
     counters_collection = db["counters"]
-    model_images_collection = db["images_models"]
-    fabric_images_collection = db["images_fabrics"]
+    models_collection = db["models"]
+    fabric_collection = db["fabrics"]
     images_collection = db["images"]
     
     print("Підключення до БД успішне!")
