@@ -59,6 +59,7 @@ class ModelInfoCreatorFrame(tk.Frame):
 
     def select_file(self):
         file_path = filedialog.askopenfilename(
+            parent=self,
             title="Select your picture",
             filetypes=[("Image files", "*.jpg *.jpeg *.png *.bmp")]
         )
@@ -74,7 +75,7 @@ class ModelInfoCreatorFrame(tk.Frame):
             img = Image.open(path)
             img.thumbnail((200, 200))
             
-            tk_img = ImageTk.PhotoImage(img)
+            tk_img = ImageTk.PhotoImage(img, master=self)
             widget.config(image=tk_img, text="")
 
             widget.image = tk_img
@@ -152,7 +153,7 @@ class ModelInfoCreatorFrame(tk.Frame):
             "description": self.text_description.get("1.0", tk.END).strip(), # type: ignore
             "recommended_fabric": self.text_entry_recomended_fabric.get("1.0", tk.END).strip(), # type: ignore
             "recommended_accessories": self.text_recomended_accessories.get("1.0", tk.END).strip(), # type: ignore
-            "price": self.entry_model_price.get(), # type: ignore
+            "price": price, # type: ignore
             "in_stock": bool(self.check_var_in_stock.get()), # type: ignore
             "image": image_binary
         }

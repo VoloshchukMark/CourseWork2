@@ -9,6 +9,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
+
 # --- Фрейми-заглушки для прикладу (Створіть окремі файли для них пізніше) ---
 
 class InfoView(tk.Frame):
@@ -27,12 +28,15 @@ class MainFrameView(tk.Frame):
         super().__init__(parent, bg="#e6ccff")
         self.controller = controller
 
+
         self.controller.title("Atelier")
         tkinter_general.center_window(self.controller, 1200, 800) 
 
         # 1. Створюємо загальний контейнер
         self.container = tk.Frame(self, bg="white")
         self.container.pack(fill="both", expand=True)
+
+        self.editor_window = None
 
         # 2. Створюємо статичний Хедер (він створюється лише 1 раз)
         self.create_header()
@@ -54,10 +58,10 @@ class MainFrameView(tk.Frame):
         # Кнопки навігації (Зверніть увагу на command)
         self.create_nav_button(header_frame, "Catalog", lambda: self.switch_content(CatalogView), side=tk.LEFT)
         self.create_nav_button(header_frame, "Info", lambda: self.switch_content(InfoView), side=tk.LEFT)
-        self.create_nav_button(header_frame, "Editor", command=self.open_editor, side=tk.RIGHT)
+        self.create_nav_button(header_frame, "Editor", command=self.open_editor, side=tk.LEFT)
         
-        self.create_nav_button(header_frame, "My Orders", lambda: print("Orders clicked"), side=tk.RIGHT)
         self.create_nav_button(header_frame, "Account", lambda: self.switch_content(AccountView), side=tk.RIGHT)
+        self.create_nav_button(header_frame, "My Orders", lambda: print("Orders clicked"), side=tk.RIGHT)
 
     def create_nav_button(self, parent, text, command, side):
         """Допоміжний метод для створення кнопок, щоб не дублювати код"""
@@ -87,8 +91,9 @@ class MainFrameView(tk.Frame):
         """Відкриває вікно редактора"""
         from GUI.Editor.editor_frame import EditorFrameView
 
-        editor_window = EditorFrameView()
+        if self.editor_window is None or not self.editor_window.winfo_exists():
+            self.editor_window = EditorFrameView() # Зберігаємо в self!
+        else:
+            self.editor_window.lift() # Піднімаємо наверх, якщо вже відкрито
+            self.editor_window.focus_set()
 
-        editor_window.focus_set()
-
-    

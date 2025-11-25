@@ -124,16 +124,34 @@ def upload_to_db(collection, doc):
             messagebox.showerror("Database Error", f"Failed to insert fabric info: {e}")
             return False
         
-def get_documents_paginated(collection_name, skip, limit, projection=None):
+def get_documents_paginated(collection_name, query=None, sort=None, skip=0, limit=12, projection=None):
     """
-    Отримує список документів з пагінацією.
-    skip: скільки записів пропустити
-    limit: скільки записів взяти
+    Отримує документи з фільтрацією та сортуванням.
+    
+    :param collection_name: Назва колекції ("models" або "fabrics")
+    :param query: Словник фільтрів MongoDB (наприклад, {"price": {"$gt": 100}})
+    :param sort: Список кортежів для сортування (наприклад, [("price", 1)])
+    :param skip: Скільки пропустити
+    :param limit: Скільки взяти
+    :param projection: Які поля повертати
     """
     try:
-        collection = mongodb_connection.db[collection_name]
-        cursor = collection.find({}, projection).skip(skip).limit(limit)
+        collection = mongodb_connection.db[collection_name] 
+
+        if query is None:
+            query = {}
+        
+        # Створюємо курсор із запитом
+        cursor = collection.find(query, projection)
+
+        # Застосовуємо сортування, якщо воно є
+        if sort:
+            cursor = cursor.sort(sort)
+        
+        # Застосовуємо пагінацію
+        cursor = cursor.skip(skip).limit(limit)
+        
         return list(cursor)
     except Exception as e:
-        print(f"Error fetching data: {e}")
+        print(f"Error fetching filtered data: {e}")
         return []

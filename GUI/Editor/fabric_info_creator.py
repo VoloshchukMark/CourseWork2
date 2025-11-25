@@ -62,6 +62,7 @@ class FabricInfoCreatorFrame(tk.Frame):
 
     def select_file(self):
         file_path = filedialog.askopenfilename(
+            parent=self,
             title="Select your picture",
             filetypes=[("Image files", "*.jpg *.jpeg *.png *.bmp")]
         )
@@ -77,7 +78,7 @@ class FabricInfoCreatorFrame(tk.Frame):
             img = Image.open(path)
             img.thumbnail((200, 200))
             
-            tk_img = ImageTk.PhotoImage(img)
+            tk_img = ImageTk.PhotoImage(img, master=self)
             widget.config(image=tk_img, text="")
 
             widget.image = tk_img
