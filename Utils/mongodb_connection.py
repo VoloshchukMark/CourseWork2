@@ -20,6 +20,7 @@ try:
     models_collection = db["models"]
     fabric_collection = db["fabrics"]
     images_collection = db["images"]
+    users_collection = db["user"]
     
     print("Підключення до БД успішне!")
 except Exception as e:

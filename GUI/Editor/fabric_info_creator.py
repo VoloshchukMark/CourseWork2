@@ -6,160 +6,41 @@ import io
 from PIL import Image, ImageTk
 from bson.binary import Binary
 from tkinter import messagebox, filedialog
+
+from GUI.Editor.base_info_creator_frame import BaseItemCreatorFrame
 from Utils import mongodb_functions
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
-class FabricInfoCreatorFrame(tk.Frame):
+class FabricInfoCreatorFrame(BaseItemCreatorFrame):
     def __init__(self, parent, controller):
-        super().__init__(parent, bg="#ffffff")
-        self.controller = controller
+        super().__init__(parent, controller, collection_name="fabrics", title_text="Fabric's parameters")
 
-        self.current_file_path = None
+    def create_specific_widgets(self):
+        self.entry_model_name = self.create_field("Fabric Name:", "entry")
+        self.text_description = self.create_field("Description:", "text")
+        self.entry_fabric_manufacturer_id = self.create_field("Fabric Manufacturer ID:", "entry")
+        self.entry_fabric_color = self.create_field("Fabric Color:", "entry")
+        self.entry_fabric_texture = self.create_field("Fabric Texture:", "entry")
+        self.entry_price_per_meter = self.create_field("Price per Meter:", "entry")
+        self.width_in_meters = self.create_field("Width in Meters:", "entry")
+        self.check_var_in_stock = self.create_field("In Stock:", "checkbutton")
 
-        self.create_widgets()
+    def get_data_dict(self):
+        # Валідація
+        price_per_meter = self.validate_float(self.entry_price_per_meter, "Price per Meter")
+        width_in_meters = self.validate_float(self.width_in_meters, "Width in Meters")
+        fabric_manufacturer_id = self.validate_float(self.entry_fabric_manufacturer_id, "Fabric Manufacturer ID")
         
-
-    def create_widgets(self):
-        self.grid_columnconfigure(0, weight=2)
-        self.grid_columnconfigure(1, weight=3)
-        self.grid_rowconfigure(0, weight=1) 
-
-        picture_Frame = tk.Frame(self, bg="#ffffff")
-        picture_Frame.grid(row=0, column=0, sticky="nsew", padx=(20, 10), pady=20)
-
-        self.btn_select = tk.Button(picture_Frame, text="📂 Choose the file", command=self.select_file, height=2)
-        self.btn_select.pack(pady=10)
-
-        self.lbl_path_text = tk.Label(picture_Frame, text="File is not selected", fg="blue")
-        self.lbl_path_text.pack()
-
-        self.lbl_preview = tk.Label(picture_Frame, text="Place for a preview", bg="#ddd", padx=5, pady=5)
-        self.lbl_preview.pack()
-        
-        
-        self.fields_Frame = tk.Frame(self, bg="#ffffff")
-        self.fields_Frame.grid(row=0, column=1, sticky="nsew", padx=(10, 20), pady=20)
-
-        tk.Label(self.fields_Frame, text="Fabric's parameters", font=("Arial", 16), 
-                bg="#FFFFFF", fg="black").pack(side=tk.TOP, padx=20, pady=5)
-        self.entry_model_name = self.create_field(self.fields_Frame, "Fabric Name:", "entry")
-        self.text_description = self.create_field(self.fields_Frame, "Description:", "text")
-        self.entry_fabric_manufacturer_id = self.create_field(self.fields_Frame, "Fabric Manufacturer ID:", "entry")
-        self.entry_fabric_color = self.create_field(self.fields_Frame, "Fabric Color:", "entry")
-        self.entry_fabric_texture = self.create_field(self.fields_Frame, "Fabric Texture:", "entry")
-        self.entry_price_per_meter = self.create_field(self.fields_Frame, "Price per Meter:", "entry")
-        self.width_in_meters = self.create_field(self.fields_Frame, "Width in Meters:", "entry")
-
-        self.check_var_in_stock = self.create_field(self.fields_Frame, "In Stock:", "checkbutton")
-
-        self.enter_Button = tk.Button(self.fields_Frame, text="Enter Model Info", height=2, command=self.handle_enter)
-        self.enter_Button.pack(pady=20)
-
-
-
-    def select_file(self):
-        file_path = filedialog.askopenfilename(
-            parent=self,
-            title="Select your picture",
-            filetypes=[("Image files", "*.jpg *.jpeg *.png *.bmp")]
-        )
-        
-        if file_path:
-            self.current_file_path = file_path
-            self.lbl_path_text.config(text=f"Selected: {os.path.basename(file_path)}")
-            
-            self.show_preview(self.lbl_preview, file_path)
-    
-    def show_preview(self, widget, path):
-        try:
-            img = Image.open(path)
-            img.thumbnail((200, 200))
-            
-            tk_img = ImageTk.PhotoImage(img, master=self)
-            widget.config(image=tk_img, text="")
-
-            widget.image = tk_img
-            
-            
-        except Exception as e:
-            messagebox.showerror("Помилка", f"Не вдалося відкрити картинку: {e}")
-
-    def create_field(self, parent, label_text, widget_type):
-        frame = tk.Frame(parent, bg="#ffffff")
-        frame.pack(pady=10, fill=tk.X)
-
-        label = tk.Label(frame, text=label_text, bg="#ffffff", anchor="w")
-        label.pack(side=tk.LEFT, padx=5)
-
-        if widget_type == "entry":
-            entry = tk.Entry(frame, width=10)
-            entry.pack(side=tk.RIGHT, padx=5, fill="x", expand=True)
-            return entry
-        elif widget_type == "text":
-            text = tk.Text(frame, height=4, width=10)
-            text.pack(side=tk.RIGHT, padx=5, fill="x", expand=True)
-            return text
-        elif widget_type == "checkbutton":
-            var = tk.IntVar()
-            checkbox = tk.Checkbutton(frame, variable=var, bg="#ffffff")
-            checkbox.pack(side=tk.RIGHT, padx=5)
-            return var
-        
-    def entry_value_check(self, entry_widget, field_name):
-        try:
-            raw_value = entry_widget.get()
-            value = float(raw_value) if raw_value else 0.0
-            return value
-        except ValueError:
-            messagebox.showerror("Помилка", f"{field_name} повинно бути числом (наприклад: 1.5 або 2)")
-            return None
-    
-    def get_fabric_info(self):
-        price_per_meter = self.entry_value_check(self.entry_price_per_meter, "Price per Meter")
-        width_in_meters = self.entry_value_check(self.width_in_meters, "Width in Meters")
-        fabric_manufacturer_id = self.entry_value_check(self.entry_fabric_manufacturer_id, "Fabric Manufacturer ID")
-        if price_per_meter is None or width_in_meters is None or fabric_manufacturer_id is None:
-            messagebox.showerror("Error", "Please fill all fields with correct values.")
+        if None in (price_per_meter, width_in_meters, fabric_manufacturer_id):
             return None
 
-        image_binary = None
+        image_binary = self.process_image_for_db()
 
-        if self.current_file_path and os.path.exists(self.current_file_path):
-            try:
-                # Відкриваємо оригінал
-                img = Image.open(self.current_file_path)
-                
-                # Змінюємо розмір (пропорційно вписуємо в квадрат 800x800 пікселів)
-                # Це значно зменшує вагу файлу для бази даних
-                img.thumbnail((800, 800))
-
-                # Якщо картинка має прозорість (PNG) або палітру, 
-                # конвертуємо в RGB, щоб можна було зберегти як JPEG
-                if img.mode in ("RGBA", "P"):
-                    img = img.convert("RGB")
-
-                # Створюємо буфер у пам'яті (віртуальний файл)
-                output_buffer = io.BytesIO()
-                
-                # Зберігаємо зменшену картинку в буфер у форматі JPEG (оптимально для фото)
-                img.save(output_buffer, format='JPEG', quality=20)
-                
-                # Отримуємо байти з буфера та конвертуємо в BSON Binary
-                image_data = output_buffer.getvalue()
-                image_binary = Binary(image_data)
-
-            except Exception as e:
-                messagebox.showerror("Помилка", f"Не вдалося обробити файл зображення: {e}")
-                return None
-        else:
-            # Якщо фото не обрано, можна вивести попередження або просто продовжити без фото
-            print("Фото не обрано")
-
-        doc = {
-            "_id": mongodb_functions.get_next_sequence("model_id"),
+        return {
+            "_id": mongodb_functions.get_next_sequence("model_id"), # Переконайтесь, що тут правильний sequence name
             "fabric_name": self.entry_model_name.get(), # type: ignore
             "description": self.text_description.get("1.0", tk.END).strip(), # type: ignore
             "fabric_color": self.entry_fabric_color.get(), # type: ignore
@@ -170,25 +51,14 @@ class FabricInfoCreatorFrame(tk.Frame):
             "in_stock": bool(self.check_var_in_stock.get()), # type: ignore
             "full_price": None,
             "image": image_binary
-            
         }
-        return doc
-    
-    def handle_enter(self):
-        fabric_info = self.get_fabric_info()
-        
-        if mongodb_functions.upload_to_db("fabrics", fabric_info):
-            self.clear_fields()
-    
-    def clear_fields(self):
-        self.entry_model_name.delete(0, tk.END) #type: ignore
-        self.text_description.delete("1.0", tk.END) #type: ignore
-        self.entry_fabric_manufacturer_id.delete(0, tk.END) #type: ignore
-        self.entry_fabric_color.delete(0, tk.END) #type: ignore
-        self.entry_fabric_texture.delete(0, tk.END) #type: ignore
-        self.entry_price_per_meter.delete(0, tk.END) #type: ignore
-        self.width_in_meters.delete(0, tk.END) #type: ignore
-        self.check_var_in_stock.set(0)   #type: ignore
-        self.lbl_path_text.config(text="File is not selected")
-        self.lbl_preview.config(image="", text="Place for a preview")
-        self.current_file_path = None
+
+    def clear_specific_fields(self):
+        self.entry_model_name.delete(0, tk.END) # type: ignore
+        self.text_description.delete("1.0", tk.END) # type: ignore
+        self.entry_fabric_manufacturer_id.delete(0, tk.END) # type: ignore
+        self.entry_fabric_color.delete(0, tk.END) # type: ignore
+        self.entry_fabric_texture.delete(0, tk.END) # type: ignore
+        self.entry_price_per_meter.delete(0, tk.END) # type: ignore
+        self.width_in_meters.delete(0, tk.END) # type: ignore
+        self.check_var_in_stock.set(0) # type: ignore

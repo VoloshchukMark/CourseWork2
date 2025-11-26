@@ -5,6 +5,7 @@ import tkinter as tk
 from Utils import tkinter_general
 from GUI.Editor.model_info_creator import ModelInfoCreatorFrame
 from GUI.Editor.fabric_info_creator import FabricInfoCreatorFrame
+from GUI.Editor.tailor_info_creator import TailorInfoCreatorFrame
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
@@ -41,6 +42,7 @@ class EditorFrameView(tk.Toplevel):
         # Кнопки навігації (Зверніть увагу на command)
         self.create_nav_button(sidebar_frame, "Model Info Creator", lambda: self.switch_content(ModelInfoCreatorFrame), side=tk.TOP)
         self.create_nav_button(sidebar_frame, "Model Info Editor", lambda: self.switch_content(FabricInfoCreatorFrame), side=tk.TOP)
+        self.create_nav_button(sidebar_frame, "Model Info Editor", lambda: self.switch_content(TailorInfoCreatorFrame), side=tk.TOP)
 
     def create_nav_button(self, parent, text, command, side):
         btn = tk.Button(parent, text=text, font=("Arial", 12), bg="#e6ccff", fg="black",

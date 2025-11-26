@@ -9,6 +9,8 @@ from Utils import tkinter_general
 from GUI.Authentication import registration 
 from GUI.Authentication import forgot_password 
 from GUI.MainMenu import main_frame
+from Utils import session
+from Actors.User import User
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
@@ -114,6 +116,9 @@ class LoginView(tk.Frame):
         entered_password = self.password_Entry.get()
         
         if mongodb_functions.verify_password(entered_login, entered_password):
+            active_user = User(login=entered_login, access="user")
+            active_user.import_info()
+            session.current_user = active_user
             messagebox.showinfo("Успіх", "Вхід успішний!")
             self.controller.switch_frame(main_frame.MainFrameView)
         else:

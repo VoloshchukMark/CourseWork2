@@ -4,8 +4,11 @@ import tkinter as tk
 from tkinter import messagebox
 
 from Utils import mongodb_functions
+from Utils import mongodb_connection
 from Utils import tkinter_general
+from Utils import session
 from GUI.Authentication import login
+from Actors.User import User
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
@@ -27,7 +30,7 @@ class RegisterView(tk.Frame):
     def create_widgets(self):
         # Заголовок
         # (У вашому коді було "Login Screen", я виправив на "Registration Screen")
-        self.title_Label = tk.Label(self, text="Registration Screen", font=("Arial", 16), bg="#e6ccff", fg="purple")
+        self.title_Label = tk.Label(self, text="Registration Screen", font=("Arial", 16), bg="#ccd1ff", fg="purple")
         self.title_Label.pack(pady=20)
 
         # Основний білий фрейм
@@ -115,15 +118,22 @@ class RegisterView(tk.Frame):
 
         # Можна додати додаткову перевірку перед відправкою в БД
         if not mongodb_functions.is_password_valid(pass_val):
-            messagebox.showerror("Помилка", "Пароль не відповідає вимогам")
+            messagebox.showerror("Error", "Wrong password!")
             return
         
         if pass_val != repeat_pass_val:
-            messagebox.showerror("Помилка", "Паролі не співпадають")
+            messagebox.showerror("Error", "Passwords do not match!")
+            return
+        
+        if mongodb_connection.keys_collection.find_one({"login": login_val}):
+            messagebox.showerror("Error", "This user is already exists!")
             return
 
         # Додавання в БД
         mongodb_functions.add_user_to_db(login_val, pass_val)
+        new_user = User(login=login_val, access="user")
+        new_user.import_info()
+        session.current_user = new_user
         
         messagebox.showinfo("Успіх", "Реєстрація успішна! Тепер увійдіть.")
         

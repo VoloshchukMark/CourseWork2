@@ -17,16 +17,26 @@ def add_user_to_db(login, password):
     if not is_password_valid(password):
         print("Пароль не відповідає вимогам безпеки.")
         return False
-    user_doc = {
-        "_id": get_next_sequence("user_id"),
+    if mongodb_connection.users_collection.find_one({"login": login}) == login:
+        print("User is already exists!")
+        return False
+    key_doc = {
+        "_id": get_next_sequence("key_id"),
         "login": login,
         "password": hash_password(password),
         "access_right": "user"
-    
-
+    }
+    user_doc = {
+        "_id": get_next_sequence("user_id"),
+        "login": login,
+        "username": "User",
+        "email": "Unknown",
+        "number": 0000000000,
+        "access": "user"
     }
     try:
-        mongodb_connection.keys_collection.insert_one(user_doc)
+        mongodb_connection.keys_collection.insert_one(key_doc)
+        mongodb_connection.users_collection.insert_one(user_doc)
         print(f"Користувача {login} збережено в MongoDB.")
         return True  
     except Exception as e:
@@ -155,3 +165,32 @@ def get_documents_paginated(collection_name, query=None, sort=None, skip=0, limi
     except Exception as e:
         print(f"Error fetching filtered data: {e}")
         return []
+
+def get_user_info(login):
+    try:
+        user_info = mongodb_connection.users_collection.find_one({"login": login})
+        return user_info
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+    
+def update_user_field(login, field_name, new_value):
+    """
+    Оновлює одне поле користувача в базі даних.
+    """
+    try:
+        result = mongodb_connection.users_collection.update_one(
+            {"login": login},             # Фільтр (кого шукаємо)
+            {"$set": {field_name: new_value}} # Оновлення (що міняємо)
+        )
+        
+        if result.modified_count > 0:
+            print(f"Successfully updated {field_name} for {login}")
+            return True
+        else:
+            print("No document updated (maybe value was the same?)")
+            return False
+            
+    except Exception as e:
+        print(f"Error updating user: {e}")
+        return False

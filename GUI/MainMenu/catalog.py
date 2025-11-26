@@ -229,11 +229,11 @@ class CatalogView(tk.Frame):
             if state == "normal":
                 default_bg = "#f0f0f0"
                 if self.state == "model":
-                    self.models_button.config(bg="#c8b8d8", activebackground="#c8b8d8") 
-                    self.fabrics_button.config(bg="#ebdff7", activebackground="#c8b8d8")
+                    self.models_button.config(bg="#ebdff7", activebackground="#ebdff7") 
+                    self.fabrics_button.config(bg="#c8b8d8", activebackground="#ebdff7")
                 else:
-                    self.fabrics_button.config(bg="#c8b8d8", activebackground="#c8b8d8")
-                    self.models_button.config(bg="#ebdff7", activebackground="#c8b8d8")
+                    self.fabrics_button.config(bg="#ebdff7", activebackground="#ebdff7")
+                    self.models_button.config(bg="#c8b8d8", activebackground="#ebdff7")
 
         if hasattr(self, 'apply_btn'):
             self.apply_btn.config(state=state)
@@ -345,6 +345,7 @@ class CatalogView(tk.Frame):
                 if self.state == "model":
                     price = "price"
                     processed_items.append({
+                    "_id": str(item.get("_id", "Unknown")),
                     "name": item.get(f"{self.state}_name", "Unknown"),
                     "price": item.get(price, 0),
                     "pil_image": pil_image,
@@ -357,6 +358,7 @@ class CatalogView(tk.Frame):
                 else:
                     price = "price_per_meter"
                     processed_items.append({
+                    "_id": str(item.get("_id", "Unknown")),
                     "name": item.get(f"{self.state}_name", "Unknown"),
                     "price": item.get(price, 0),
                     "pil_image": pil_image,

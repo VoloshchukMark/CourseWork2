@@ -44,8 +44,18 @@ class DetailsView(tk.Toplevel):
         self.load_large_image()
 
         # Назва
-        tk.Label(self.left_frame, text=item_data.get('name', 'Unknown'), 
-                 font=("Arial", 24, "bold"), bg="white", wraplength=400).pack(pady=(20, 10), anchor="w")
+        name_id_frame = tk.Frame(self.left_frame, bg="white")
+        name_id_frame.pack(pady=(20, 10), anchor="w", fill="x")
+
+        # 2. Назва (Зліва)
+        tk.Label(name_id_frame, text=self.item_data.get('name', 'Unknown'), 
+                 font=("Arial", 24, "bold"), bg="white").pack(side="left")
+
+        # 3. ID (Справа від назви, сірим кольором)
+        item_id = self.item_data.get('_id', '')
+        if item_id:
+            tk.Label(name_id_frame, text=f"#{item_id}", 
+                     font=("Arial", 16), fg="gray", bg="white").pack(side="left", padx=10, anchor="sw", pady=5)
 
         # Опис
         desc_text = item_data.get('description', 'No description available.')

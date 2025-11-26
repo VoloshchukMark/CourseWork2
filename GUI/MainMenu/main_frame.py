@@ -4,6 +4,7 @@ import tkinter as tk
 
 from Utils import tkinter_general
 from GUI.MainMenu.catalog import CatalogView
+from GUI.MainMenu.account import AccountView
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
@@ -16,11 +17,6 @@ class InfoView(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, bg="#f0f0f0")
         tk.Label(self, text="Інформація про ательє", font=("Arial", 20)).pack(pady=50)
-
-class AccountView(tk.Frame):
-    def __init__(self, parent, controller):
-        super().__init__(parent, bg="#e0e0e0")
-        tk.Label(self, text="Особистий кабінет", font=("Arial", 20)).pack(pady=50)
 
 # --- Головний клас ---
 class MainFrameView(tk.Frame):
