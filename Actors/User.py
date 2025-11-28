@@ -13,6 +13,7 @@ class User:
         self.email = "Unknown"
         self.number = "Unknown"
         self.access = access  # e.g., 'user', 'admin', 'operator'
+        self.amount_of_orders = 0
     
     def edit_info(self, new_login="Unknown", new_username="Unknown", new_email="Unknown", new_number="Unknown", new_access="Unknown"):
         if new_login:

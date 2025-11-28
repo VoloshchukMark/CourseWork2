@@ -67,7 +67,7 @@ class AccountView(tk.Frame):
         # Використовуємо pack з side=bottom у головному self, а не в main_container,
         # щоб кнопка завжди була внизу екрану
         btn_logout = tk.Button(self, text="Log Out", font=("Arial", 12, "bold"), 
-                               fg="white", bg="#d9534f", # Червоний колір
+                               fg="white", bg="#99707e", # Червоний колір
                                relief="flat", cursor="hand2",
                                command=self.logout)
         btn_logout.pack(side="bottom", fill="x", pady=0, ipady=10)
@@ -162,8 +162,8 @@ class AccountView(tk.Frame):
                  bg="white", fg="#333").pack(anchor="w", pady=(0, 10))
 
         # Кнопки-посилання
-        self.create_link_button(orders_frame, "📦 My Orders", lambda: print("Go to active orders"))
-        self.create_link_button(orders_frame, "📜 Orders History", lambda: print("Go to history"))
+        self.create_link_button(orders_frame, "  My Orders", lambda: print("Go to active orders"))
+        self.create_link_button(orders_frame, "  Orders History", lambda: print("Go to history"))
 
     def create_link_button(self, parent, text, command):
         """Створює кнопку, схожу на текст (без рамок)"""
@@ -228,7 +228,7 @@ class AccountView(tk.Frame):
 
     def import_user_icon(self):
         # Тут ваш код, я лише додав try/except
-        path = "Data/Images/user_icon.txt" # Перевірте розширення
+        path = "Data/Images/user_icon" # Перевірте розширення
         if not os.path.exists(path):
             return None
         try:

@@ -15,7 +15,7 @@ sys.path.append(project_root)
 
 def add_user_to_db(login, password):
     if not is_password_valid(password):
-        print("Пароль не відповідає вимогам безпеки.")
+        print("The password is not secure enough.")
         return False
     if mongodb_connection.users_collection.find_one({"login": login}) == login:
         print("User is already exists!")
@@ -37,10 +37,10 @@ def add_user_to_db(login, password):
     try:
         mongodb_connection.keys_collection.insert_one(key_doc)
         mongodb_connection.users_collection.insert_one(user_doc)
-        print(f"Користувача {login} збережено в MongoDB.")
+        print(f"The user {login} info has been saved successfuly in MongoDB.")
         return True  
     except Exception as e:
-        print(f"Помилка запису: {e}")
+        print(f"Error: {e}")
         return False
 
 def get_all_keys_connection():
@@ -48,7 +48,7 @@ def get_all_keys_connection():
         keys_connection = list(mongodb_connection.keys_collection.find())
         return keys_connection
     except Exception as e:
-        print(f"Помилка читання: {e}")
+        print(f"Error: {e}")
         return []
     
 def get_next_sequence(sequence_name):
@@ -117,22 +117,14 @@ def get_user(entered_login):
             return False
 
 def upload_to_db(collection, doc):
-    if collection and collection == "models":
-        try:
-            mongodb_connection.models_collection.insert_one(doc)
-            messagebox.showinfo("Success", "Model information has been added to the database.")
-            return True
-        except Exception as e:
-            messagebox.showerror("Database Error", f"Failed to insert model info: {e}")
-            return False
-    elif collection and collection == "fabrics":
-        try:
-            mongodb_connection.fabric_collection.insert_one(doc)
-            messagebox.showinfo("Success", "Fabric information has been added to the database.")
-            return True
-        except Exception as e:
-            messagebox.showerror("Database Error", f"Failed to insert fabric info: {e}")
-            return False
+    try:
+        mongodb_connection.db[collection].insert_one(doc)
+        messagebox.showinfo("Success", f"The {collection} information has been added to the database.")
+        return True
+    except Exception as e:
+        messagebox.showerror("Database Error", f"Failed to insert info: {e}")
+        return False
+    
         
 def get_documents_paginated(collection_name, query=None, sort=None, skip=0, limit=12, projection=None):
     """
@@ -218,4 +210,67 @@ def update_document(collection_name, doc_id, new_data):
         print(f"Update error: {e}")
         return False
 
+def get_fabric_supply_amount_(fabric_manufacturer_id):
+    try:
+        amount_of_supply = list(mongodb_connection.fabric_collection.find_many({"fabric_manufacturer_id": fabric_manufacturer_id})).count
+        return amount_of_supply
+    except Exception as e:
+        print(f"Error!: {e}")
+        return None
 
+def get_manufacturers_paginated(skip, limit):
+    """
+    Повертає список виробників з пагінацією + підрахованою кількістю тканин.
+    """
+    pipeline = [
+        # 1. Сортування (бажано, щоб порядок не стрибав при пагінації)
+        {"$sort": {"_id": 1}},
+        
+        # 2. Пагінація (СПОЧАТКУ обрізаємо, потім рахуємо - це набагато швидше)
+        {"$skip": skip},
+        {"$limit": limit},
+
+        # 3. З'єднання з тканинами (Lookup)
+        {
+            "$lookup": {
+                "from": "fabrics",                # НАЗВА КОЛЕКЦІЇ ТКАНИН У БД
+                "localField": "_id",              # ID виробника
+                "foreignField": "fabric_manufacturer_id", # Поле зв'язку в тканинах
+                "as": "related_fabrics"           # Тимчасовий масив
+            }
+        },
+
+        # 4. Проекція (залишаємо потрібні поля і рахуємо довжину масиву)
+        {
+            "$project": {
+                "_id": 1,
+                "name": 1,
+                "number": 1,
+                "fabric_supply_amount": {"$size": "$related_fabrics"} # Рахуємо кількість
+            }
+        }
+    ]
+    
+    return list(mongodb_connection.manufacturers_collection.aggregate(pipeline))
+
+def increment_manufacturer_fabric_count(manufacturer_id):
+    """
+    Знаходить виробника за _id і збільшує його поле fabric_supply_amount на 1.
+    """
+    try:
+        # Увага: перевірте назву колекції ("tailors" або "manufacturers")
+        # У ваших файлах ви використовували "tailors" для постачальників.
+        collection_name = "tailors" 
+        
+        result = mongodb_connection.manufacturers_collection.update_one(
+            {"_id": manufacturer_id},       # Умова пошуку
+            {"$inc": {"fabric_supply_amount": 1}} # Оператор $inc збільшує значення
+        )
+        
+        if result.modified_count > 0:
+            print(f"Updated manufacturer {manufacturer_id} supply count.")
+        else:
+            print(f"Manufacturer {manufacturer_id} not found or count not updated.")
+            
+    except Exception as e:
+        print(f"Error updating manufacturer count: {e}")

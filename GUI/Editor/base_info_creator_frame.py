@@ -29,17 +29,17 @@ class BaseItemCreatorFrame(tk.Frame):
             self.grid_columnconfigure(0, weight=2) # Для фото
             self.grid_columnconfigure(1, weight=3) # Для полів
 
-            # --- Ліва частина (Зображення) ---
+            # Ліва частина (Зображення)
             picture_Frame = tk.Frame(self, bg="#ffffff")
             picture_Frame.grid(row=0, column=0, sticky="nsew", padx=(20, 10), pady=20)
 
-            self.btn_select = tk.Button(picture_Frame, text="📂 Choose the file", command=self.select_file, height=2)
+            self.btn_select = tk.Button(picture_Frame, text="Choose the file", command=self.select_file, bg="white", height=2)
             self.btn_select.pack(pady=10)
 
-            self.lbl_path_text = tk.Label(picture_Frame, text="File is not selected", fg="blue", bg="#ffffff")
+            self.lbl_path_text = tk.Label(picture_Frame, text="File is not selected", fg="blue",  bg="white")
             self.lbl_path_text.pack()
 
-            self.lbl_preview = tk.Label(picture_Frame, text="Place for a preview", bg="#ddd", padx=5, pady=5)
+            self.lbl_preview = tk.Label(picture_Frame, text="Place for a preview",  bg="white", padx=5, pady=5)
             self.lbl_preview.pack()
 
             # Поля будуть у другій колонці
@@ -50,8 +50,8 @@ class BaseItemCreatorFrame(tk.Frame):
             # Якщо картинки немає, поля займають все місце по центру
             self.grid_columnconfigure(0, weight=1)
             fields_col = 0
-            fields_sticky = "n" # Притискаємо до верху (center-top)
-            fields_colspan = 2  # Займаємо всю ширину
+            fields_sticky = "n" 
+            fields_colspan = 2 
 
         # --- Права частина (Поля) ---
         self.fields_Frame = tk.Frame(self, bg="#ffffff")
@@ -124,7 +124,7 @@ class BaseItemCreatorFrame(tk.Frame):
                 img.save(output_buffer, format='JPEG', quality=20)
                 return Binary(output_buffer.getvalue())
             except Exception as e:
-                messagebox.showerror("Помилка", f"Не вдалося обробити файл зображення: {e}")
+                messagebox.showerror("Error", f"Something wrong with the image: {e}")
                 return None
         return None
 
@@ -184,5 +184,4 @@ class BaseItemCreatorFrame(tk.Frame):
                 print(f"Error loading preview: {e}")
 
     def fill_specific_fields(self, data):
-        """Перевизначте це в Model/Fabric/Tailor creator frame"""
         pass

@@ -29,7 +29,6 @@ class RegisterView(tk.Frame):
 
     def create_widgets(self):
         # Заголовок
-        # (У вашому коді було "Login Screen", я виправив на "Registration Screen")
         self.title_Label = tk.Label(self, text="Registration Screen", font=("Arial", 16), bg="#ccd1ff", fg="purple")
         self.title_Label.pack(pady=20)
 
@@ -135,7 +134,7 @@ class RegisterView(tk.Frame):
         new_user.import_info()
         session.current_user = new_user
         
-        messagebox.showinfo("Успіх", "Реєстрація успішна! Тепер увійдіть.")
+        messagebox.showinfo("Success", "The registration was successful! Back to Login.")
         
         # Перехід назад на Логін
         # Імпорт тут, щоб уникнути циклічної залежності

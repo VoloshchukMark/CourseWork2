@@ -8,8 +8,6 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
-# Підключення (Ваш рядок з паролем)
-# Використовуємо try-except для безпеки, щоб код не падав, якщо нема інтернету
 try:
     cluster = MongoClient("mongodb+srv://voloshchukmark:cipmbinjBINJ228@courseproject.xogedrt.mongodb.net/")
 
@@ -21,8 +19,10 @@ try:
     fabric_collection = db["fabrics"]
     images_collection = db["images"]
     users_collection = db["user"]
+    orders_collection = db["user"]
+    manufacturers_collection = db["manufacturers"]
     
-    print("Підключення до БД успішне!")
+    print("The connection is successful!")
 except Exception as e:
-    print(f"Помилка підключення: {e}")
+    print(f"Connection error: {e}")
 

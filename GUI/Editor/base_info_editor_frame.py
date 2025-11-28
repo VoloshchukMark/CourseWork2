@@ -4,12 +4,13 @@ from Utils import mongodb_functions
 import threading
 
 class BaseInfoEditorView(tk.Frame):
-    def __init__(self, parent, controller, collection_name, creator_class, headers):
+    def __init__(self, parent, controller, collection_name, creator_class, headers, custom_loader=None):
         super().__init__(parent, bg="white")
         self.controller = controller
         self.collection_name = collection_name
         self.creator_class = creator_class
         self.headers = headers
+        self.custom_loader = custom_loader
 
         # --- Змінні для пагінації ---
         self.current_index = 0
@@ -93,6 +94,9 @@ class BaseInfoEditorView(tk.Frame):
 
     def refresh_data(self):
         """Повне перезавантаження (скидання таблиці)"""
+
+        self.is_refreshing = True
+        
         self.current_index = 0
         self.all_loaded = False
         self.is_loading = False
@@ -122,16 +126,16 @@ class BaseInfoEditorView(tk.Frame):
         threading.Thread(target=self._background_loader, daemon=True).start()
 
     def _background_loader(self):
-        try:
-            # Симуляція затримки, щоб ви побачили напис Loading (можна прибрати)
-            # import time; time.sleep(0.5) 
-            
-            data = mongodb_functions.get_documents_paginated(
-                self.collection_name, 
-                skip=self.current_index, 
-                limit=self.batch_size, 
-                projection=None
-            )
+        try: 
+            if self.custom_loader:
+                data = self.custom_loader(skip=self.current_index, limit=self.batch_size)
+            else:
+                data = mongodb_functions.get_documents_paginated(
+                    self.collection_name, 
+                    skip=self.current_index, 
+                    limit=self.batch_size, 
+                    projection=None
+                )
         except Exception as e:
             print(f"DB Error: {e}")
             data = []

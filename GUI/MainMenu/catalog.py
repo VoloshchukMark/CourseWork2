@@ -282,7 +282,7 @@ class CatalogView(tk.Frame):
 
         # --- ДОДАНО: Створюємо Label "Завантаження..." ---
         # Ми ставимо його в наступний рядок (grid_row + 1) і розтягуємо на 3 колонки (columnspan=3)
-        self.loading_label = tk.Label(self.scrollable_frame, text="⏳ Завантажуються дані...", 
+        self.loading_label = tk.Label(self.scrollable_frame, text="⏳ Loading data...", 
                                       font=("Arial", 12, "italic"), fg="gray", bg="white")
         self.loading_label.grid(row=self.grid_row + 1, column=0, columnspan=3, pady=20, sticky="ew")
         
@@ -374,7 +374,7 @@ class CatalogView(tk.Frame):
                 
 
         except Exception as e:
-            print(f"Критична помилка у потоці: {e}")
+            print(f"Critical error in thread: {e}")
             # processed_items залишиться порожнім або частково заповненим
         
         finally:
@@ -396,7 +396,7 @@ class CatalogView(tk.Frame):
         self.set_buttons_state("normal")
 
         if not new_items:
-            self.show_end_of_list_message() # Ваша функція "На даний момент все"
+            self.show_end_of_list_message()
             self.all_loaded = True
             self.is_loading = False
             return
@@ -441,12 +441,12 @@ class CatalogView(tk.Frame):
         
         price_color = "green" if in_stock else "gray"
         if self.state == "model":
-            tk.Label(card, text=f"{price} грн", font=("Arial", 11), fg=price_color, bg="#ffffff").pack(pady=(0, 10))
+            tk.Label(card, text=f"{price} UAH", font=("Arial", 11), fg=price_color, bg="#ffffff").pack(pady=(0, 10))
         else:
-            tk.Label(card, text=f"{price} грн/м", font=("Arial", 11), fg=price_color, bg="#ffffff").pack(pady=(0, 10))
+            tk.Label(card, text=f"{price} UAH/m", font=("Arial", 11), fg=price_color, bg="#ffffff").pack(pady=(0, 10))
         
         if not in_stock:
-            tk.Label(card, text="Не в наявності", font=("Arial", 10, "bold"), fg="red", bg="#ffffff").pack(pady=(0, 10))
+            tk.Label(card, text="Out of stock", font=("Arial", 10, "bold"), fg="red", bg="#ffffff").pack(pady=(0, 10))
         else:
             # Можна додати порожній відступ, щоб картки були однієї висоти
             tk.Label(card, text="", font=("Arial", 10), bg="#ffffff").pack(pady=(0, 10))
@@ -470,7 +470,7 @@ class CatalogView(tk.Frame):
     def show_end_of_list_message(self):
         """Показує повідомлення внизу, що товарів більше немає"""
         # Створюємо лейбл на всю ширину в наступному рядку
-        lbl_end = tk.Label(self.scrollable_frame, text="На даний момент все", 
+        lbl_end = tk.Label(self.scrollable_frame, text="That's all at the moment", 
                            font=("Arial", 10, "italic"), fg="gray", bg="white")
         lbl_end.grid(row=self.grid_row + 1, column=0, columnspan=3, pady=20)
 

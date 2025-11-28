@@ -1,0 +1,14 @@
+altgraph==0.17.5
+argon2-cffi==25.1.0
+argon2-cffi-bindings==25.1.0
+cffi==2.0.0
+dnspython==2.8.0
+-e git+https://github.com/Markovoloshchuk/CourseWork2.git@db85954a378226653b9b1312c69951ed30c4816e#egg=my_project
+packaging==25.0
+pillow==12.0.0
+pycparser==2.23
+pyinstaller==6.16.0
+pyinstaller-hooks-contrib==2025.10
+pymongo==4.15.4
+setuptools==80.9.0
+wheel==0.45.1

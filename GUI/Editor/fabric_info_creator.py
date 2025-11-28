@@ -32,7 +32,14 @@ class FabricInfoCreatorFrame(BaseItemCreatorFrame):
         # Валідація
         price_per_meter = self.validate_float(self.entry_price_per_meter, "Price per Meter")
         width_in_meters = self.validate_float(self.width_in_meters, "Width in Meters")
-        fabric_manufacturer_id = self.validate_float(self.entry_fabric_manufacturer_id, "Fabric Manufacturer ID")
+        try:
+            raw_id = self.entry_fabric_manufacturer_id.get().strip() # type: ignore
+            if not raw_id:
+                raise ValueError("Empty ID")
+            fabric_manufacturer_id = int(raw_id) # <--- Конвертуємо в int
+        except ValueError:
+            messagebox.showerror("Error", "Fabric Manufacturer ID must be an integer number!")
+            return None
         
         if None in (price_per_meter, width_in_meters, fabric_manufacturer_id):
             return None
@@ -52,6 +59,27 @@ class FabricInfoCreatorFrame(BaseItemCreatorFrame):
             "full_price": None,
             "image": image_binary
         }
+    
+    def handle_enter(self):
+        """
+        Цей метод спрацьовує при натисканні кнопки 'Enter Info'.
+        Ми перевизначаємо його, щоб додати логіку оновлення лічильника виробника.
+        """
+        data = self.get_data_dict()
+        if data:
+            # 1. Спробуємо зберегти тканину в БД
+            if mongodb_functions.upload_to_db(self.collection_name, data):
+                
+                # 2. ЯКЩО УСПІШНО -> Оновлюємо лічильник у виробника
+                man_id = data["fabric_manufacturer_id"]
+                mongodb_functions.increment_manufacturer_fabric_count(man_id)
+                
+                # 3. Очищаємо поля (стандартна логіка)
+                self.clear_specific_fields()
+                if self.has_image:
+                    self.current_file_path = None
+                    self.lbl_path_text.config(text="File is not selected")
+                    self.lbl_preview.config(image="", text="Place for a preview")
 
     def clear_specific_fields(self):
         self.entry_model_name.delete(0, tk.END) # type: ignore

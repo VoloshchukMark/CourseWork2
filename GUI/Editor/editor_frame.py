@@ -9,8 +9,10 @@ from GUI.Editor.base_info_editor_frame import BaseInfoEditorView
 from GUI.Editor.model_info_creator import ModelInfoCreatorFrame
 from GUI.Editor.fabric_info_creator import FabricInfoCreatorFrame
 from GUI.Editor.tailor_info_creator import TailorInfoCreatorFrame
+from GUI.Editor.manufacturer_info_creator import ManufacturerInfoCreatorFrame
 
 from Utils import tkinter_general
+from Utils import mongodb_functions
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
@@ -44,17 +46,19 @@ class EditorFrameView(tk.Toplevel):
 
         # --- Розділ CREATOR (Створення нових) ---
         tk.Label(sidebar_frame, text="CREATE NEW", font=("Arial", 10, "bold"), bg="#e6ccff", fg="#555").pack(anchor="w", padx=10, pady=(10,0))
-        self.create_nav_button(sidebar_frame, "➕ New Model", lambda: self.open_creator(ModelInfoCreatorFrame))
-        self.create_nav_button(sidebar_frame, "➕ New Fabric", lambda: self.open_creator(FabricInfoCreatorFrame))
-        self.create_nav_button(sidebar_frame, "➕ New Tailor", lambda: self.open_creator(TailorInfoCreatorFrame))
+        self.create_nav_button(sidebar_frame, "  New Model", lambda: self.open_creator(ModelInfoCreatorFrame))
+        self.create_nav_button(sidebar_frame, "  New Fabric", lambda: self.open_creator(FabricInfoCreatorFrame))
+        self.create_nav_button(sidebar_frame, "  New Tailor", lambda: self.open_creator(TailorInfoCreatorFrame))
+        self.create_nav_button(sidebar_frame, "  New Supplier", lambda: self.open_creator(ManufacturerInfoCreatorFrame))
 
         # --- Розділ EDITOR (Редагування списків) ---
         tk.Label(sidebar_frame, text="MANAGE LISTS", font=("Arial", 10, "bold"), bg="#e6ccff", fg="#555").pack(anchor="w", padx=10, pady=(20,0))
         
         # Тут ми викликаємо спеціальні методи, які налаштують таблицю
-        self.create_nav_button(sidebar_frame, "📝 Manage Models", self.show_model_table)
-        self.create_nav_button(sidebar_frame, "📝 Manage Fabrics", self.show_fabric_table)
-        self.create_nav_button(sidebar_frame, "📝 Manage Tailors", self.show_tailor_table)
+        self.create_nav_button(sidebar_frame, "  Manage Models", self.show_model_table)
+        self.create_nav_button(sidebar_frame, "  Manage Fabrics", self.show_fabric_table)
+        self.create_nav_button(sidebar_frame, "  Manage Tailors", self.show_tailor_table)
+        self.create_nav_button(sidebar_frame, "  Manage Suppliers", self.show_supplier_table)
 
     def create_nav_button(self, parent, text, command):
         btn = tk.Button(parent, text=text, font=("Arial", 12), bg="#e6ccff", fg="black",
@@ -120,8 +124,31 @@ class EditorFrameView(tk.Toplevel):
             headers=[
                 ("_id", "ID"), 
                 ("name", "Full Name"), 
-                ("number", "Phone")
+                ("number", "Phone"),
+                ("annual_salary", "Annual Sal."),
+                ("monthy_salary", "Monthy Sal."),
+                ("quarterly_salary", "Quarterly Sal.")
             ]
+        )
+        editor.pack(fill="both", expand=True)
+    
+    def show_supplier_table(self):
+        self.clear_content()
+        editor = BaseInfoEditorView(
+            parent=self.content_area,
+            controller=self,
+            # Важливо: перевірте, чи ваша колекція справді називається "tailors" для постачальників?
+            # У вашому ManufacturerInfoCreatorFrame стоїть "tailors". Краще змінити на "manufacturers".
+            collection_name="tailors", 
+            creator_class=ManufacturerInfoCreatorFrame,
+            headers=[
+                ("_id", "ID"), 
+                ("name", "Supplier Name"), 
+                ("number", "Phone"),
+                ("fabric_supply_amount", "Fabrics Count") # Нова колонка
+            ],
+                # Передаємо спеціальну функцію завантаження
+                custom_loader=mongodb_functions.get_manufacturers_paginated 
         )
         editor.pack(fill="both", expand=True)
 
