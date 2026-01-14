@@ -89,7 +89,7 @@ class LoginView(tk.Frame):
         self.not_signed_up_Button.pack(side=tk.RIGHT)
 
     def setup_bindings(self):
-        # Прив'язуємо події фокусу
+        # Validation binds
         self.password_Entry.bind("<FocusOut>", self.on_focus_out)
         self.password_Entry.bind("<FocusIn>", self.on_focus_in)
         self.password_Entry.bind("<Return>", self.on_enter_button_press)
@@ -119,10 +119,10 @@ class LoginView(tk.Frame):
             active_user = User(login=entered_login, access="user")
             active_user.import_info()
             session.current_user = active_user
-            messagebox.showinfo("Успіх", "Вхід успішний!")
+            messagebox.showinfo("Success", "Login was successful!")
             self.controller.switch_frame(main_frame.MainFrameView)
         else:
-            messagebox.showerror("Помилка", "Невірний логін або пароль.")
+            messagebox.showerror("Error!", "Wrong login or password.")
 
     def handle_registration(self):
         self.controller.switch_frame(registration.RegisterView)
@@ -154,7 +154,7 @@ class LoginView(tk.Frame):
         self.controller.focus_set()
     
     def on_enter_button_press(self, event):
-        print(f"Кнопку натиснуто у віджеті")
+        print(f"Button pressed in widget")
         if event.widget == self.login_Entry:
             self.password_Entry.focus_set()
         elif event.widget == self.password_Entry:

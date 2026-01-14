@@ -93,10 +93,15 @@ class RegisterView(tk.Frame):
         self.repeat_password_Entry.bind("<FocusOut>", self.check_password_match)
         self.repeat_password_Entry.bind("<FocusIn>", self.reset_match_hint)
 
+        self.controller.bind("<Escape>", self.on_esc)
+
         # Focus management binds
         self.username_Entry.bind("<Button-1>", self.keep_focus)
+        self.username_Entry.bind("<Return>", self.on_enter_button_press)
         self.password_Entry.bind("<Button-1>", self.keep_focus)
+        self.password_Entry.bind("<Return>", self.on_enter_button_press)
         self.repeat_password_Entry.bind("<Button-1>", self.keep_focus)
+        self.repeat_password_Entry.bind("<Return>", self.on_enter_button_press)
 
         # Dismiss focus binds (Background clicks)
         self.registration_Frame.bind("<Button-1>", self.dismiss_focus) 
@@ -115,7 +120,7 @@ class RegisterView(tk.Frame):
         pass_val = self.password_Entry.get()
         repeat_pass_val = self.repeat_password_Entry.get()
 
-        # Можна додати додаткову перевірку перед відправкою в БД
+        # Validation of entered data
         if not mongodb_functions.is_password_valid(pass_val):
             messagebox.showerror("Error", "Wrong password!")
             return
@@ -128,7 +133,7 @@ class RegisterView(tk.Frame):
             messagebox.showerror("Error", "This user is already exists!")
             return
 
-        # Додавання в БД
+        # Push data to db
         mongodb_functions.add_user_to_db(login_val, pass_val)
         new_user = User(login=login_val, access="user")
         new_user.import_info()
@@ -136,13 +141,13 @@ class RegisterView(tk.Frame):
         
         messagebox.showinfo("Success", "The registration was successful! Back to Login.")
         
-        # Перехід назад на Логін
-        # Імпорт тут, щоб уникнути циклічної залежності
-         
+        # Switching back to Login frame
+        self.controller.unbind("<Escape>")
         self.controller.switch_frame(login.LoginView)
 
     def handle_back(self):
-        # Повертаємось на сторінку логіну
+        # Switching back to Login frame
+        self.controller.unbind("<Escape>")
         self.controller.switch_frame(login.LoginView)
 
     # --- Validation Helpers ---
@@ -180,3 +185,15 @@ class RegisterView(tk.Frame):
 
     def dismiss_focus(self, event):
         self.controller.focus_set()
+    
+    def on_enter_button_press(self, event):
+        print(f"Button pressed in widget")
+        if event.widget == self.username_Entry:
+            self.password_Entry.focus_set()
+        elif event.widget == self.password_Entry:
+            self.repeat_password_Entry.focus_set()
+        elif event.widget == self.repeat_password_Entry:
+            self.handle_registration()
+    
+    def on_esc(self, event):
+        self.handle_back()

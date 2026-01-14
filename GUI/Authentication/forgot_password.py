@@ -37,8 +37,8 @@ class ForgotPasswordView(tk.Frame):
         self.stage1_frame = tk.Frame(self, width=400, height=400, bg="white")
         self.stage1_frame.pack_propagate(False) 
 
-        self.login_Label = tk.Label(self.stage1_frame, text="Enter your Login", bg="white", font=("Arial", 12))
-        self.login_Entry = tk.Entry(self.stage1_frame, font=("Arial", 12))
+        self.username_Label = tk.Label(self.stage1_frame, text="Enter your Login", bg="white", font=("Arial", 12))
+        self.username_Entry = tk.Entry(self.stage1_frame, font=("Arial", 12))
 
         self.login_Button = tk.Button(self.stage1_frame, text="Next", justify=tk.CENTER,
                                       width=20, font=("Arial", 14), bg="#b366ff", fg="white", 
@@ -50,11 +50,11 @@ class ForgotPasswordView(tk.Frame):
                                              font=("Arial", 12), bg="white", fg="#a6a6a6", 
                                              borderwidth=0, highlightthickness=0, 
                                              activebackground="white", activeforeground="#737373",
-                                             command=self.go_back_to_login_view)
+                                             command=self.handle_back)
 
         # Розміщення елементів 1 етапу
-        self.login_Label.pack(anchor='w', padx=20, pady=(40, 0))
-        self.login_Entry.pack(padx=20, pady=(0, 20), fill=tk.X)
+        self.username_Label.pack(anchor='w', padx=20, pady=(40, 0))
+        self.username_Entry.pack(padx=20, pady=(0, 20), fill=tk.X)
         self.login_Button.pack(pady=20)
         self.back_to_menu_Button.pack(pady=10)
 
@@ -112,27 +112,29 @@ class ForgotPasswordView(tk.Frame):
         self.repeat_password_Entry.bind("<FocusOut>", self.check_password_match)
         self.repeat_password_Entry.bind("<FocusIn>", self.reset_match_hint)
 
+        self.controller.bind("<Escape>", self.on_esc)
+
         # Focus management
-        self.login_Entry.bind("<Button-1>", self.keep_focus)
+        self.username_Entry.bind("<Button-1>", self.keep_focus)
+        self.username_Entry.bind("<Return>", self.on_enter_button_press)
         self.password_Entry.bind("<Button-1>", self.keep_focus)
+        self.password_Entry.bind("<Return>", self.on_enter_button_press)
         self.repeat_password_Entry.bind("<Button-1>", self.keep_focus)
+        self.repeat_password_Entry.bind("<Return>", self.on_enter_button_press)
 
         # Dismiss focus binds
-        # Біндимо на обидва фрейми, бо в різні моменти часу активний лише один з них
         self.stage1_frame.bind("<Button-1>", self.dismiss_focus)
         self.stage2_frame.bind("<Button-1>", self.dismiss_focus)
         
         self.bind("<Button-1>", self.dismiss_focus) 
         
-        self.login_Label.bind("<Button-1>", self.dismiss_focus)
+        self.username_Label.bind("<Button-1>", self.dismiss_focus)
         self.password_Label.bind("<Button-1>", self.dismiss_focus)
         self.repeat_password_Label.bind("<Button-1>", self.dismiss_focus)
         self.format_check_hint_Label.bind("<Button-1>", self.dismiss_focus)
         self.match_check_hint_Label.bind("<Button-1>", self.dismiss_focus)
 
-    # ==========================================
-    # ЛОГІКА ПЕРЕМИКАННЯ ЕТАПІВ
-    # ==========================================
+    # --- SWITCHING STAGES LOGIC ---
 
     def show_stage1(self):
         """Ховаємо 2-й етап, показуємо 1-й"""
@@ -149,26 +151,24 @@ class ForgotPasswordView(tk.Frame):
         self.repeat_password_Entry.delete(0, tk.END)
         self.user_info_Label.config(text=f"Recovering password for: {self.target_login}")
 
-    # ==========================================
-    # ЛОГІКА ОБРОБКИ ДІЙ
-    # ==========================================
+    # --- BUTTONS LOGIC ---
 
     def handle_stage1_submit(self):
-        """Перевіряємо логін"""
-        login_val = self.login_Entry.get()
+        # Login validation
+        username_val = self.username_Entry.get()
 
-        if not login_val:
+        if not username_val:
             messagebox.showwarning("Warning", "Please enter a login first.")
             return
 
-        if not mongodb_functions.get_user(login_val):
+        if not mongodb_functions.get_user(username_val):
             return
         
-        self.target_login = login_val
-        self.show_stage2() # Переходимо далі
+        self.target_login = username_val
+        self.show_stage2() # Next step
 
     def handle_stage2_submit(self):
-        """Зберігаємо новий пароль"""
+        # Saving new password
         new_pass = self.password_Entry.get()
         repeat_pass = self.repeat_password_Entry.get()
 
@@ -180,18 +180,18 @@ class ForgotPasswordView(tk.Frame):
             messagebox.showerror("Error", "Passwords do not match.")
             return
         
-        # Оновлення в БД (розкоментуйте, коли буде функція)
+        # Update in DB
         if mongodb_functions.uptade_password(self.target_login, new_pass):
             messagebox.showinfo("Success", "Password changed!")
-            self.go_back_to_login_view()
+            self.controller.unbind("<Escape>")
+            self.handle_back()
 
-    def go_back_to_login_view(self):
-        
+    def handle_back(self):
+        self.controller.unbind("<Escape>")
         self.controller.switch_frame(login.LoginView)
 
-    # ==========================================
-    # ДОПОМІЖНІ ФУНКЦІЇ (Validation & Focus)
-    # ==========================================
+
+    # --- VALIDATION HELPERS ---
 
     def check_password_format(self, event):
         pwd = self.password_Entry.get()
@@ -218,3 +218,16 @@ class ForgotPasswordView(tk.Frame):
 
     def dismiss_focus(self, event):
         self.controller.focus_set()
+
+    def on_enter_button_press(self, event):
+        print(f"Button pressed in widget")
+        if event.widget == self.username_Entry:
+            self.handle_stage1_submit()
+            self.password_Entry.focus_set()
+        elif event.widget == self.password_Entry:
+            self.repeat_password_Entry.focus_set()
+        elif event.widget == self.repeat_password_Entry:
+            self.handle_stage2_submit()
+    
+    def on_esc(self, event):
+        self.handle_back()
