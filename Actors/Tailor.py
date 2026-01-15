@@ -1,4 +1,4 @@
-class Tylor():
+class Tailor():
     def ___init__(self,):
         self._id = None
         self.name = "Unknown"

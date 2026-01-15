@@ -33,6 +33,7 @@ class AccountView(tk.Frame):
         self.email = "Not set"
         self.number = "Not set"
         self.access = "guest"
+        self.address = "Not set"
 
         if session.current_user:
              self.login = getattr(session.current_user, 'login', "Unknown")
@@ -42,6 +43,7 @@ class AccountView(tk.Frame):
              self.number = str(getattr(session.current_user, 'number', "Not set"))
              raw_access = getattr(session.current_user, 'access', None)
              self.access = raw_access if raw_access else "user"
+             self.address = getattr(session.current_user, 'address', "Not set")
 
     def create_widgets(self):
         # Головний контейнер з відступами, щоб все не липло до країв
@@ -133,11 +135,12 @@ class AccountView(tk.Frame):
         # Створюємо рядки
         self.create_info_row(grid_frame, 0, "Email:", self.email, "email")
         self.create_info_row(grid_frame, 1, "Phone:", self.number, "number")
+        self.create_info_row(grid_frame, 2, "Address:", self.address, "address")
         
         # Рядок Access без кнопки зміни (бо це права доступу)
-        tk.Label(grid_frame, text="Access:", font=("Arial", 12, "bold"), bg="white", fg="#555").grid(row=2, column=0, sticky="w", pady=5)
-        tk.Label(grid_frame, text=self.access, font=("Arial", 12), bg="white").grid(row=2, column=1, sticky="w", padx=10)
-
+        tk.Label(grid_frame, text="Access:", font=("Arial", 12, "bold"), bg="white", fg="#555").grid(row=3, column=0, sticky="w", pady=5)
+        tk.Label(grid_frame, text=self.access, font=("Arial", 12), bg="white").grid(row=3, column=1, sticky="w", padx=10)
+        
     def create_info_row(self, parent, row, label_text, value_text, field_key):
         """Допоміжна функція для створення рядка з кнопкою Change"""
         # 1. Назва поля

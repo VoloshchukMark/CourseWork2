@@ -1,7 +1,7 @@
 import sys
 import os
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import io
 from PIL import Image, ImageTk
 import threading
@@ -105,7 +105,7 @@ class CatalogView(tk.Frame):
             for widget in self.filter_Frame.winfo_children():
                 widget.destroy()
         filter_Label = tk.Label(self.filter_Frame, text="Filter", font=("Arial", 12), bg="pink")
-        filter_Label.pack(pady=(20, 0))
+        filter_Label.pack(pady=(20, 0), padx=100)
 
         if self.state == "model":
             self.filter_recomended_fabric_Label = tk.Label(self.filter_Frame, text="Recommended Fabric", font=("Arial", 14), bg="pink")
@@ -132,11 +132,11 @@ class CatalogView(tk.Frame):
             self.filter_model_price_to_Entry.bind("<Return>", lambda event: self.apply_filters()) 
 
         else:
-            self.filter_fabric_manufacturer_id_Label = tk.Label(self.filter_Frame, text="Fabric Manufacturer ID", font=("Arial", 14), bg="pink")
-            self.filter_fabric_manufacturer_id_Label.pack(pady=(10, 0), anchor="w")
-            self.filter_fabric_manufacturer_id_Entry = tk.Entry(self.filter_Frame, font=("Arial", 12))
-            self.filter_fabric_manufacturer_id_Entry.pack(pady=0, padx=10, fill=tk.X)
-            self.filter_fabric_manufacturer_id_Entry.bind("<Return>", lambda event: self.apply_filters())
+            self.filter_fabric_supplier_id_Label = tk.Label(self.filter_Frame, text="Fabric Supplier ID", font=("Arial", 14), bg="pink")
+            self.filter_fabric_supplier_id_Label.pack(pady=(10, 0), anchor="w")
+            self.filter_fabric_supplier_id_Entry = tk.Entry(self.filter_Frame, font=("Arial", 12))
+            self.filter_fabric_supplier_id_Entry.pack(pady=0, padx=10, fill=tk.X)
+            self.filter_fabric_supplier_id_Entry.bind("<Return>", lambda event: self.apply_filters())
 
             self.filter_fabric_color_Label = tk.Label(self.filter_Frame, text="Fabric Color", font=("Arial", 14), bg="pink")
             self.filter_fabric_color_Label.pack(pady=(10, 0), anchor="w")
@@ -158,7 +158,7 @@ class CatalogView(tk.Frame):
             self.filter_fabric_price_per_meter_from_Entry.bind("<Return>", lambda event: self.apply_filters())
 
             self.filter_fabric_price_per_meter_to_Entry = tk.Entry(self.filter_Frame, font=("Arial", 12))
-            self.filter_fabric_price_per_meter_to_Entry.pack(pady=0, padx=10, fill=tk.X)
+            self.filter_fabric_price_per_meter_to_Entry.pack(pady=2, padx=10, fill=tk.X) 
             self.filter_fabric_price_per_meter_to_Entry.bind("<Return>", lambda event: self.apply_filters())
 
 
@@ -268,8 +268,8 @@ class CatalogView(tk.Frame):
         self.canvas.yview_moveto(0)
 
     def load_more_products(self):
-        """Запускає процес завантаження у фоновому режимі"""
-        if self.is_loading or self.all_loaded: # Якщо вже вантажимось - виходимо
+        # Start loading process in background
+        if self.is_loading or self.all_loaded: # If already loaded - return
             return
 
         self.is_loading = True
@@ -280,8 +280,7 @@ class CatalogView(tk.Frame):
         self.scrollable_frame.columnconfigure(1, weight=1)
         self.scrollable_frame.columnconfigure(2, weight=1)
 
-        # --- ДОДАНО: Створюємо Label "Завантаження..." ---
-        # Ми ставимо його в наступний рядок (grid_row + 1) і розтягуємо на 3 колонки (columnspan=3)
+        # Create label "Loading data..."
         self.loading_label = tk.Label(self.scrollable_frame, text="⏳ Loading data...", 
                                       font=("Arial", 12, "italic"), fg="gray", bg="white")
         self.loading_label.grid(row=self.grid_row + 1, column=0, columnspan=3, pady=20, sticky="ew")
@@ -290,19 +289,18 @@ class CatalogView(tk.Frame):
         current_sort = self.get_sort_order()
 
 
-        # Оновлюємо інтерфейс примусово, щоб напис з'явився миттєво до запуску потоку
+        # Forcefuly update interface so Loading label appeared first
         self.scrollable_frame.update_idletasks() 
 
-        # Запускаємо потік
+        # Start thread
         threading.Thread(target=self._background_loader, args=(current_query, current_sort), daemon=True).start()
 
     def _background_loader(self, query_filter, sort_order):
-        """Цей код виконується паралельно і не блокує вікно"""
         processed_items = []
         try:
             batch_size = 12
             
-            # 1. Запит до бази даних
+            # 1. Request to the DB
             if self.state == "model":
                 collection = "models"
                 field_name = "model_name"
@@ -310,7 +308,7 @@ class CatalogView(tk.Frame):
             else: # "fabric"
                 collection = "fabrics"
                 field_name = "fabric_name"
-                field_price = "price_per_meter" # Перевірте, чи точно так названо в БД
+                field_price = "price_per_meter"
 
             projection = None
 
@@ -323,7 +321,7 @@ class CatalogView(tk.Frame):
                 projection=projection
             )
 
-            # 2. Підготовка картинок
+            # 2. Processing images
             for item in raw_data:
                 pil_image = None
                 image_binary = item.get("image")
@@ -335,11 +333,20 @@ class CatalogView(tk.Frame):
                         pil_img_raw = Image.open(img_data)
                         pil_img_raw.thumbnail((200, 200))
                         if not in_stock:
+
+                            if pil_img_raw.mode in ('RGBA', 'LA') or (pil_img_raw.mode == 'P' and 'transparency' in pil_img_raw.info):
+                                
+                                white_bg = Image.new("RGB", pil_img_raw.size, (255, 255, 255))
+                                
+                                pil_img_raw = pil_img_raw.convert("RGBA")
+                                
+                                white_bg.paste(pil_img_raw, mask=pil_img_raw.split()[3])
+                                
+                                pil_img_raw = white_bg
                             pil_img_raw = pil_img_raw.convert("L")
                         pil_image = pil_img_raw
                     except Exception as e:
-                        print(f"Помилка обробки фото для {item.get('model_name')}: {e}")
-                        # Не перериваємо цикл, просто цей товар буде без фото
+                        print(f"Error occured while processing image for {item.get('model_name')}: {e}")
 
                 price = ""
                 if self.state == "model":
@@ -366,7 +373,7 @@ class CatalogView(tk.Frame):
                     "description": item.get("description", ""),
                     "fabric_color": item.get("fabric_color", ""),
                     "fabric_texture": item.get("fabric_texture", ""),
-                    "fabric_manufacturer_id": item.get("fabric_manufacturer_id", ""),
+                    "fabric_supplier_id": item.get("fabric_supplier_id", ""),
                     "width_in_meters": item.get("width_in_meters", ""),
                     "width": f"{item.get('width_in_meters', '-')} m",
                     "original_image_binary": image_binary
@@ -375,17 +382,15 @@ class CatalogView(tk.Frame):
 
         except Exception as e:
             print(f"Critical error in thread: {e}")
-            # processed_items залишиться порожнім або частково заповненим
         
         finally:
-            # 3. Цей блок виконається ЗАВЖДИ, навіть якщо була помилка.
-            # Ми обов'язково повідомляємо головний потік, що роботу завершено.
+            # 3. Inform the Main thread that the work is done
             self.after(0, self._update_ui_on_main_thread, processed_items)
 
     def _update_ui_on_main_thread(self, new_items):
-        """Цей метод виконується в головному потоці і малює віджети"""
+        # This method executes in the Main thread, draws widgets
         
-        # Перевірка: якщо користувач вже закрив вкладку каталогу, поки вантажились дані
+        # Checks if user already closed Catalog tab during data loading
         if not self.winfo_exists():
             return
         
@@ -405,11 +410,11 @@ class CatalogView(tk.Frame):
         self.scrollable_frame.columnconfigure(1, weight=1)
         self.scrollable_frame.columnconfigure(2, weight=1)
 
-        # Створення карток
+        # Create images
         for item in new_items:
             self.create_product_card(item)
 
-        # Оновлюємо лічильник
+        # Update index
         self.current_product_index += len(new_items)
 
         batch_size = 12
@@ -417,22 +422,21 @@ class CatalogView(tk.Frame):
             self.all_loaded = True
             self.show_end_of_list_message()
         
-        # Знімаємо прапорець завантаження
         self.is_loading = False
 
     def create_product_card(self, item_data):
         name = item_data["name"]
         price = item_data["price"]
-        pil_image = item_data["pil_image"] # Це вже готовий PIL Image, підготовлений у потоці
+        pil_image = item_data["pil_image"]
         in_stock = item_data["in_stock"]
 
         card = tk.Frame(self.scrollable_frame, bg="#ffffff", bd=1, relief="ridge")
         card.grid(row=self.grid_row, column=self.grid_col, padx=10, pady=10, sticky="nsew")
         
-        # Створення ImageTk (тільки в головному потоці!)
+        # Create ImageTk (in Main thread only)
         if pil_image:
             photo = ImageTk.PhotoImage(pil_image)
-            self.image_refs.append(photo) # Зберігаємо посилання
+            self.image_refs.append(photo) 
             tk.Label(card, image=photo, bg="#ffffff").pack(pady=(10, 5))
         else:
             tk.Label(card, text="No Image", bg="#eee", width=20, height=10).pack(pady=(10, 5))
@@ -448,11 +452,10 @@ class CatalogView(tk.Frame):
         if not in_stock:
             tk.Label(card, text="Out of stock", font=("Arial", 10, "bold"), fg="red", bg="#ffffff").pack(pady=(0, 10))
         else:
-            # Можна додати порожній відступ, щоб картки були однієї висоти
             tk.Label(card, text="", font=("Arial", 10), bg="#ffffff").pack(pady=(0, 10))
         
         def on_card_click(event):
-            from GUI.MainMenu.details_view_frame import DetailsView # Лінивий імпорт, щоб уникнути циклічності
+            from GUI.MainMenu.details_view_frame import DetailsView 
             DetailsView(self, item_data, self.state)
         
         card.bind("<Button-1>", on_card_click)
@@ -461,21 +464,20 @@ class CatalogView(tk.Frame):
             child.bind("<Button-1>", on_card_click)
         # ---------------------------
 
-        # Логіка сітки
+        # Grid logix
         self.grid_col += 1
         if self.grid_col > 2:
             self.grid_col = 0
             self.grid_row += 1
 
     def show_end_of_list_message(self):
-        """Показує повідомлення внизу, що товарів більше немає"""
-        # Створюємо лейбл на всю ширину в наступному рядку
+        # Shows that there's no more products to be loaded
         lbl_end = tk.Label(self.scrollable_frame, text="That's all at the moment", 
                            font=("Arial", 10, "italic"), fg="gray", bg="white")
         lbl_end.grid(row=self.grid_row + 1, column=0, columnspan=3, pady=20)
 
     def build_filter_query(self):
-        """Зчитує всі поля вводу і формує словник query для MongoDB"""
+        # Reads all filter fields and creates query dictionary for MongoDB
         query = {}
 
         search_text = ""
@@ -485,15 +487,11 @@ class CatalogView(tk.Frame):
         field_name = "model_name" if self.state == "model" else "fabric_name"
         
         if search_text:
-            # $regex з опцією 'i' робить пошук нечутливим до регістру
             query[field_name] = {"$regex": search_text, "$options": "i"}
 
-        # 2. Фільтр "В наявності" (In Stock)
-        # Те саме, треба мати self.filter_in_stock_var
         if hasattr(self, 'filter_in_stock_var') and self.filter_in_stock_var.get() == 1:
             query["in_stock"] = True
 
-        # 3. Специфічні фільтри (залежно від вкладки)
         if self.state == "model":
             if hasattr(self, 'filter_recomended_fabric_Entry') and self.filter_recomended_fabric_Entry.get():
                 text = self.filter_recomended_fabric_Entry.get().strip()
@@ -509,9 +507,8 @@ class CatalogView(tk.Frame):
                     val = float(self.filter_model_price_from_Entry.get())
                     price_query["$gte"] = val
                 except ValueError: 
-                    pass # Ігноруємо, якщо ввели букви
+                    pass 
             
-            # Обробка "До" (Less than or equal - $lte)
             if hasattr(self, 'filter_model_price_to_Entry') and self.filter_model_price_to_Entry.get():
                 try:
                     val = float(self.filter_model_price_to_Entry.get())
@@ -519,15 +516,13 @@ class CatalogView(tk.Frame):
                 except ValueError: 
                     pass
 
-            # Якщо хоч одне поле заповнене, додаємо в запит
             if price_query:
                 query["price"] = price_query 
-            # ---------------------------------------
 
         else: # Fabrics
-            # Приклад: Manufacturer ID
-            if hasattr(self, 'filter_fabric_manufacturer_id_Entry') and self.filter_fabric_manufacturer_id_Entry.get():
-                query["manufacturer_id"] = self.filter_fabric_manufacturer_id_Entry.get().strip()
+            # Supplier ID
+            if hasattr(self, 'filter_fabric_supplier_id_Entry') and self.filter_fabric_supplier_id_Entry.get():
+                query["supplier_id"] = self.filter_fabric_supplier_id_Entry.get().strip()
             
             if hasattr(self, 'filter_fabric_texture_Entry') and self.filter_fabric_texture_Entry.get():
                 text = self.filter_fabric_texture_Entry.get().strip()
@@ -558,7 +553,6 @@ class CatalogView(tk.Frame):
         return query
 
     def get_sort_order(self):
-        """Зчитує Combobox і повертає список сортування"""
         if not hasattr(self, 'sort_by_Combobox'):
             return None
             
@@ -566,7 +560,7 @@ class CatalogView(tk.Frame):
         field_price = "price" if self.state == "model" else "price_per_meter"
         field_name = "model_name" if self.state == "model" else "fabric_name"
 
-        # 1 = Ascending (А-Я, 0-9), -1 = Descending (Я-А, 9-0)
+
         if selection == "Name A-Z":
             return [(field_name, 1)]
         elif selection == "Name Z-A":
@@ -576,12 +570,29 @@ class CatalogView(tk.Frame):
         elif selection == "Price High-Low":
             return [(field_price, -1)]
         
-        return None # Сортування за замовчуванням (як у БД)
+        return None
     
     def apply_filters(self, event=None):
-        """Скидає каталог і завантажує заново з урахуванням фільтрів"""
+        if (not self.price_range_validation()):
+            return
         self.clear_catalog()
         self.load_more_products()
+    
+    def price_range_validation(self):
+        try:
+            val_from = self.filter_model_price_from_Entry.get()
+            val_to = self.filter_model_price_to_Entry.get()
+
+            if val_from: 
+                float(val_from)
+        
+            if val_to:  
+                float(val_to)
+
+            return True
+        except ValueError:
+            messagebox.showerror("Value error!", "Make sure price range consists of numbers only.")
+            return False
 
     
 

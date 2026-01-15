@@ -210,15 +210,15 @@ def update_document(collection_name, doc_id, new_data):
         print(f"Update error: {e}")
         return False
 
-def get_fabric_supply_amount_(fabric_manufacturer_id):
+def get_fabric_supply_amount_(fabric_supplier_id):
     try:
-        amount_of_supply = list(mongodb_connection.fabric_collection.find_many({"fabric_manufacturer_id": fabric_manufacturer_id})).count
+        amount_of_supply = list(mongodb_connection.fabric_collection.find_many({"fabric_supplier_id": fabric_supplier_id})).count
         return amount_of_supply
     except Exception as e:
         print(f"Error!: {e}")
         return None
 
-def get_manufacturers_paginated(skip, limit):
+def get_suppliers_paginated(skip, limit):
     """
     Повертає список виробників з пагінацією + підрахованою кількістю тканин.
     """
@@ -235,7 +235,7 @@ def get_manufacturers_paginated(skip, limit):
             "$lookup": {
                 "from": "fabrics",                # НАЗВА КОЛЕКЦІЇ ТКАНИН У БД
                 "localField": "_id",              # ID виробника
-                "foreignField": "fabric_manufacturer_id", # Поле зв'язку в тканинах
+                "foreignField": "fabric_supplier_id", # Поле зв'язку в тканинах
                 "as": "related_fabrics"           # Тимчасовий масив
             }
         },
@@ -251,26 +251,26 @@ def get_manufacturers_paginated(skip, limit):
         }
     ]
     
-    return list(mongodb_connection.manufacturers_collection.aggregate(pipeline))
+    return list(mongodb_connection.suppliers_collection.aggregate(pipeline))
 
-def increment_manufacturer_fabric_count(manufacturer_id):
+def increment_supplier_fabric_count(supplier_id):
     """
     Знаходить виробника за _id і збільшує його поле fabric_supply_amount на 1.
     """
     try:
-        # Увага: перевірте назву колекції ("tailors" або "manufacturers")
+        # Увага: перевірте назву колекції ("tailors" або "suppliers")
         # У ваших файлах ви використовували "tailors" для постачальників.
         collection_name = "tailors" 
         
-        result = mongodb_connection.manufacturers_collection.update_one(
-            {"_id": manufacturer_id},       # Умова пошуку
+        result = mongodb_connection.suppliers_collection.update_one(
+            {"_id": supplier_id},       # Умова пошуку
             {"$inc": {"fabric_supply_amount": 1}} # Оператор $inc збільшує значення
         )
         
         if result.modified_count > 0:
-            print(f"Updated manufacturer {manufacturer_id} supply count.")
+            print(f"Updated supplier {supplier_id} supply count.")
         else:
-            print(f"Manufacturer {manufacturer_id} not found or count not updated.")
+            print(f"Supplier {supplier_id} not found or count not updated.")
             
     except Exception as e:
-        print(f"Error updating manufacturer count: {e}")
+        print(f"Error updating supplier count: {e}")

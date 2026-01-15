@@ -8,9 +8,8 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
-class ManufacturerInfoCreatorFrame(BaseItemCreatorFrame):
+class SupplierInfoCreatorFrame(BaseItemCreatorFrame):
     def __init__(self, parent, controller):
-        # Вказуємо has_image=False
         super().__init__(parent, controller, 
                          collection_name="manufacturers", 
                          title_text="New Supplier Registration", 
@@ -70,4 +69,4 @@ class ManufacturerInfoCreatorFrame(BaseItemCreatorFrame):
             }
         ]
         
-        return list(mongodb_connection.manufacturers_collection.aggregate(pipeline))
+        return list(mongodb_connection.suppliers_collection.aggregate(pipeline))

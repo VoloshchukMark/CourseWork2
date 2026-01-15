@@ -20,7 +20,7 @@ try:
     images_collection = db["images"]
     users_collection = db["user"]
     orders_collection = db["user"]
-    manufacturers_collection = db["manufacturers"]
+    suppliers_collection = db["suppliers"]
     
     print("The connection is successful!")
 except Exception as e:

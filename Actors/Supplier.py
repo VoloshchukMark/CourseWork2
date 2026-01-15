@@ -1,4 +1,4 @@
-class Manufacturer():
+class Supplier():
     def __init__(self):
         self._id = 0
         self.name = "Unknown"

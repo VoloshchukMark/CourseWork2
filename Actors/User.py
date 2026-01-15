@@ -13,9 +13,10 @@ class User:
         self.email = "Unknown"
         self.number = "Unknown"
         self.access = access  # e.g., 'user', 'admin', 'operator'
+        self.address = "Unknown"
         self.amount_of_orders = 0
     
-    def edit_info(self, new_login="Unknown", new_username="Unknown", new_email="Unknown", new_number="Unknown", new_access="Unknown"):
+    def edit_info(self, new_login="Unknown", new_username="Unknown", new_email="Unknown", new_number="Unknown", new_access="Unknown", new_address="Unknown"):
         if new_login:
             self.login = new_login
         if new_username:
@@ -26,6 +27,8 @@ class User:
             self.number = int(new_number)
         if new_access:
             self.access = new_access
+        if new_address:
+            self.address = new_access
 
     def import_info(self):
         try:
@@ -35,6 +38,7 @@ class User:
                 self.email = imported_user.get("email", "Unknown")
                 self.number = imported_user.get("number", 0)
                 self.access = imported_user.get("access", "user")
+                self.address = imported_user.get("address", "Unknown")
         except Exception as e:
             messagebox.showerror("Error", f"Something went wrong:\n{e}")
             print(e)

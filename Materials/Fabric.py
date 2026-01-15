@@ -1,7 +1,7 @@
 class Fabric:
     def __init__(self):
         self.fabric_name = None
-        self.fabric_manufacturer_id = None
+        self.fabric_supplier_id = None
         self.fabric_color = None
         self.fabric_texture = None
         self.fabric_price_per_meter = 0.0

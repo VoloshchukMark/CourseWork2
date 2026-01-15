@@ -9,7 +9,7 @@ from GUI.Editor.base_info_editor_frame import BaseInfoEditorView
 from GUI.Editor.model_info_creator import ModelInfoCreatorFrame
 from GUI.Editor.fabric_info_creator import FabricInfoCreatorFrame
 from GUI.Editor.tailor_info_creator import TailorInfoCreatorFrame
-from GUI.Editor.manufacturer_info_creator import ManufacturerInfoCreatorFrame
+from GUI.Editor.supplier_info_creator import SupplierInfoCreatorFrame
 
 from Utils import tkinter_general
 from Utils import mongodb_functions
@@ -49,7 +49,7 @@ class EditorFrameView(tk.Toplevel):
         self.create_nav_button(sidebar_frame, "  New Model", lambda: self.open_creator(ModelInfoCreatorFrame))
         self.create_nav_button(sidebar_frame, "  New Fabric", lambda: self.open_creator(FabricInfoCreatorFrame))
         self.create_nav_button(sidebar_frame, "  New Tailor", lambda: self.open_creator(TailorInfoCreatorFrame))
-        self.create_nav_button(sidebar_frame, "  New Supplier", lambda: self.open_creator(ManufacturerInfoCreatorFrame))
+        self.create_nav_button(sidebar_frame, "  New Supplier", lambda: self.open_creator(SupplierInfoCreatorFrame))
 
         # --- Розділ EDITOR (Редагування списків) ---
         tk.Label(sidebar_frame, text="MANAGE LISTS", font=("Arial", 10, "bold"), bg="#e6ccff", fg="#555").pack(anchor="w", padx=10, pady=(20,0))
@@ -137,10 +137,8 @@ class EditorFrameView(tk.Toplevel):
         editor = BaseInfoEditorView(
             parent=self.content_area,
             controller=self,
-            # Важливо: перевірте, чи ваша колекція справді називається "tailors" для постачальників?
-            # У вашому ManufacturerInfoCreatorFrame стоїть "tailors". Краще змінити на "manufacturers".
             collection_name="tailors", 
-            creator_class=ManufacturerInfoCreatorFrame,
+            creator_class=SupplierInfoCreatorFrame,
             headers=[
                 ("_id", "ID"), 
                 ("name", "Supplier Name"), 
@@ -148,7 +146,7 @@ class EditorFrameView(tk.Toplevel):
                 ("fabric_supply_amount", "Fabrics Count") # Нова колонка
             ],
                 # Передаємо спеціальну функцію завантаження
-                custom_loader=mongodb_functions.get_manufacturers_paginated 
+                custom_loader=mongodb_functions.get_suppliers_paginated 
         )
         editor.pack(fill="both", expand=True)
 

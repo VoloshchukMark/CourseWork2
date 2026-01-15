@@ -1,18 +1,13 @@
 import sys
 import os
 import io
-import base64  # Для декодування
+import base64  
 import tkinter as tk
 from tkinter import ttk
-from PIL import Image, ImageTk  # Для роботи з картинками
+from PIL import Image, ImageTk 
 
-# --- Налаштування шляхів ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
-# Припускаємо, що цей файл знаходиться десь в глибині папок (наприклад GUI/MainMenu),
-# тому піднімаємось на рівень вище, щоб знайти корінь проекту
 project_root = os.path.dirname(current_dir) 
-# Якщо файл дуже глибоко, можливо треба ще раз: os.path.dirname(os.path.dirname(current_dir))
-# Але поки лишаємо як у вас було.
 
 sys.path.append(project_root)
 

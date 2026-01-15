@@ -83,7 +83,7 @@ class DetailsView(tk.Toplevel):
             self.create_detail_row("Recommended Fabric:", item_data.get('recommended_fabric', '-'))
             self.create_detail_row("Recomended accessories:", item_data.get('recommended_accessories', '-'))
         else: # Fabric
-            self.create_detail_row("Manufacturer ID:", item_data.get('fabric_manufacturer_id', '-'))
+            self.create_detail_row("Supplier ID:", item_data.get('fabric_supplier_id', '-'))
             self.create_detail_row("Color:", item_data.get('fabric_color', '-'))
             self.create_detail_row("Texture:", item_data.get('fabric_texture', '-'))
             self.create_detail_row("Width:", item_data.get('width', '-'))

@@ -118,10 +118,18 @@ class BaseItemCreatorFrame(tk.Frame):
             try:
                 img = Image.open(self.current_file_path)
                 img.thumbnail((800, 800))
-                if img.mode in ("RGBA", "P"):
-                    img = img.convert("RGB")
+
                 output_buffer = io.BytesIO()
-                img.save(output_buffer, format='JPEG', quality=20)
+
+                if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
+                # If transparency is present - save as PNG
+                    img.save(output_buffer, format='PNG', optimize=True)
+                else:
+                # If no transparency detected - convert into RGB save as JPEG
+                    if img.mode != "RGB":
+                        img = img.convert("RGB")
+                    img.save(output_buffer, format='JPEG', quality=20)
+
                 return Binary(output_buffer.getvalue())
             except Exception as e:
                 messagebox.showerror("Error", f"Something wrong with the image: {e}")
