@@ -19,7 +19,7 @@ try:
     fabric_collection = db["fabrics"]
     images_collection = db["images"]
     users_collection = db["user"]
-    orders_collection = db["user"]
+    orders_collection = db["orders"]
     suppliers_collection = db["suppliers"]
     
     print("The connection is successful!")

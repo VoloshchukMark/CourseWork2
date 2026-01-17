@@ -254,8 +254,19 @@ class BaseInfoEditorView(tk.Frame):
         if new_data:
             if new_data.get("image") is None and hasattr(editor_frame, 'original_image_binary'):
                 new_data["image"] = editor_frame.original_image_binary
+            
+            if "_id" in new_data:
+                del new_data["_id"]
 
-            if mongodb_functions.update_document(self.collection_name, doc_id, new_data):
+            success = mongodb_functions.update_document(
+                self.collection_name, 
+                {"_id": doc_id},       # Query (пошук)
+                {"$set": new_data}     # Update (оновлення)
+            )
+
+            if success:
                 messagebox.showinfo("Success", "Updated successfully")
                 window.destroy()
                 self.refresh_data()
+            else:
+                messagebox.showerror("Error", "Failed to update document")

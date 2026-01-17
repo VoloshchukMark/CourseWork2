@@ -425,35 +425,49 @@ class CatalogView(tk.Frame):
         self.is_loading = False
 
     def create_product_card(self, item_data):
-        name = item_data["name"]
-        price = item_data["price"]
-        pil_image = item_data["pil_image"]
-        in_stock = item_data["in_stock"]
-
+        """Створення картки товару з урахуванням категорії"""
         card = tk.Frame(self.scrollable_frame, bg="#ffffff", bd=1, relief="ridge")
         card.grid(row=self.grid_row, column=self.grid_col, padx=10, pady=10, sticky="nsew")
         
-        # Create ImageTk (in Main thread only)
-        if pil_image:
-            photo = ImageTk.PhotoImage(pil_image)
+        # --- Image ---
+        if item_data["pil_image"]:
+            photo = ImageTk.PhotoImage(item_data["pil_image"])
             self.image_refs.append(photo) 
-            tk.Label(card, image=photo, bg="#ffffff").pack(pady=(10, 5))
+            lbl_img = tk.Label(card, image=photo, bg="#ffffff")
+            lbl_img.pack(pady=(10, 5))
         else:
-            tk.Label(card, text="No Image", bg="#eee", width=20, height=10).pack(pady=(10, 5))
+            lbl_img = tk.Label(card, text="No Image", bg="#eee", width=20, height=10)
+            lbl_img.pack(pady=(10, 5))
 
-        tk.Label(card, text=name, font=("Arial", 12, "bold"), bg="#ffffff").pack()
+        # --- Title ---
+        tk.Label(card, text=item_data["name"], font=("Arial", 12, "bold"), bg="#ffffff", wraplength=180).pack(padx=5)
         
-        price_color = "green" if in_stock else "gray"
+        # --- Price ---
+        price_color = "#ba86ba" if item_data["in_stock"] else "gray"
+        price_suffix = "UAH" if self.state == "model" else "UAH/m"
+        tk.Label(card, text=f"{item_data['price']} {price_suffix}", font=("Arial", 11), fg=price_color, bg="#ffffff").pack(pady=(0, 5))
+        
+        if not item_data["in_stock"]:
+            tk.Label(card, text="Out of stock", font=("Arial", 10, "bold"), fg="#5e4152", bg="#ffffff").pack(pady=(0, 5))
+
+        # --- Buttons Area (ОНОВЛЕНО) ---
+        # Використовуємо фрейм для кнопки внизу, щоб вона прилипала до низу картки
+        btn_frame = tk.Frame(card, bg="white")
+        btn_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
+
+        # Логіка відображення кнопки Order
         if self.state == "model":
-            tk.Label(card, text=f"{price} UAH", font=("Arial", 11), fg=price_color, bg="#ffffff").pack(pady=(0, 10))
+            # Якщо це модель, показуємо кнопку замовлення
+            if item_data["in_stock"]:
+                order_btn = tk.Button(btn_frame, text="Order Model", bg="#815d88", fg="white", font=("Arial", 10, "bold"),
+                                      cursor="hand2", command=lambda: self.open_order_window(item_data))
+                order_btn.pack(fill=tk.X)
+            else:
+                 tk.Label(btn_frame, text="Unavailable", fg="gray", bg="white").pack()
         else:
-            tk.Label(card, text=f"{price} UAH/m", font=("Arial", 11), fg=price_color, bg="#ffffff").pack(pady=(0, 10))
-        
-        if not in_stock:
-            tk.Label(card, text="Out of stock", font=("Arial", 10, "bold"), fg="red", bg="#ffffff").pack(pady=(0, 10))
-        else:
-            tk.Label(card, text="", font=("Arial", 10), bg="#ffffff").pack(pady=(0, 10))
-        
+            # Якщо це тканина, просто інформаційний напис
+            tk.Label(btn_frame, text="Material Only", fg="gray", font=("Arial", 9, "italic"), bg="white").pack()
+            
         def on_card_click(event):
             from GUI.MainMenu.details_view_frame import DetailsView 
             DetailsView(self, item_data, self.state)
@@ -469,6 +483,11 @@ class CatalogView(tk.Frame):
         if self.grid_col > 2:
             self.grid_col = 0
             self.grid_row += 1
+
+    def open_order_window(self, item_data):
+        # Тут можна відкрити DetailsView або одразу створити замовлення
+        from GUI.MainMenu.details_view_frame import DetailsView
+        DetailsView(self, item_data, self.state)
 
     def show_end_of_list_message(self):
         # Shows that there's no more products to be loaded
@@ -594,7 +613,7 @@ class CatalogView(tk.Frame):
             messagebox.showerror("Value error!", "Make sure price range consists of numbers only.")
             return False
 
-    
+
 
 
 

@@ -7,6 +7,8 @@ from PIL import Image, ImageTk
 from Authentication.login import LoginView
 from Utils import session
 from Utils import mongodb_functions
+from GUI.MainMenu.my_orders import MyOrdersView
+from GUI.MainMenu.orders_history import OrdersHistoryWindow
 # Припускаємо, що у вас є функція оновлення БД
 # from Utils import mongodb_functions 
 
@@ -65,9 +67,6 @@ class AccountView(tk.Frame):
         # --- 3. ORDERS FRAME (Текстові кнопки) ---
         self.create_orders_section(main_container)
 
-        # --- 4. LOGOUT (В самому низу) ---
-        # Використовуємо pack з side=bottom у головному self, а не в main_container,
-        # щоб кнопка завжди була внизу екрану
         btn_logout = tk.Button(self, text="Log Out", font=("Arial", 12, "bold"), 
                                fg="white", bg="#99707e", # Червоний колір
                                relief="flat", cursor="hand2",
@@ -165,8 +164,8 @@ class AccountView(tk.Frame):
                  bg="white", fg="#333").pack(anchor="w", pady=(0, 10))
 
         # Кнопки-посилання
-        self.create_link_button(orders_frame, "  My Orders", lambda: print("Go to active orders"))
-        self.create_link_button(orders_frame, "  Orders History", lambda: print("Go to history"))
+        self.create_link_button(orders_frame, "  My Orders", lambda: self.main_view.switch_content(MyOrdersView)) #type: ignore
+        self.create_link_button(orders_frame, "  Orders History", self.open_history_window)
 
     def create_link_button(self, parent, text, command):
         """Створює кнопку, схожу на текст (без рамок)"""
@@ -246,3 +245,5 @@ class AccountView(tk.Frame):
             print(f"Icon error: {e}")
             return None
         
+    def open_history_window(self):
+        OrdersHistoryWindow(self, self.controller)

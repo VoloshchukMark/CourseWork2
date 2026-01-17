@@ -142,6 +142,7 @@ class EditorFrameView(tk.Toplevel):
             headers=[
                 ("_id", "ID"), 
                 ("name", "Supplier Name"), 
+                ("address", "Address"),
                 ("number", "Phone"),
                 ("fabric_supply_amount", "Fabrics Count") # Нова колонка
             ],

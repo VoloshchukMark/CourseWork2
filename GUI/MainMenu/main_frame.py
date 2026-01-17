@@ -1,29 +1,29 @@
 import sys, os, io
 import tkinter as tk
+from tkinter import messagebox
 from PIL import Image, ImageTk
 import base64
 
-from Utils import tkinter_general
+from Utils import tkinter_general, session
 from GUI.MainMenu.catalog import CatalogView
 from GUI.MainMenu.account import AccountView
 from GUI.MainMenu.info_frame import InfoFrameView
+from GUI.MainMenu.my_orders import MyOrdersView
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
-
-# --- Фрейми-заглушки для прикладу (Створіть окремі файли для них пізніше) ---
-
-# --- Головний клас ---
 class MainFrameView(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, bg="#e6ccff")
         self.controller = controller
 
-
         self.controller.title("Atelier")
         tkinter_general.center_window(self.controller, 1200, 800) 
+
+        # Словник для зберігання кнопок навігації
+        self.nav_buttons = {} 
 
         # 1. Створюємо загальний контейнер
         self.container = tk.Frame(self, bg="white")
@@ -31,113 +31,97 @@ class MainFrameView(tk.Frame):
 
         self.editor_window = None
 
-        # 2. Створюємо статичний Хедер (він створюється лише 1 раз)
+        # 2. Створюємо статичний Хедер
         self.create_header()
 
-        # 3. Створюємо контейнер для динамічного контенту (туди будемо пхати Catalog, Info...)
+        # 3. Створюємо контейнер для динамічного контенту
         self.content_area = tk.Frame(self.container, bg="white")
         self.content_area.pack(fill="both", expand=True)
 
-        # 4. Завантажуємо стартову сторінку (наприклад, Каталог)
+        # 4. Завантажуємо стартову сторінку (Каталог)
+        self.current_content_frame = None
         self.switch_content(CatalogView)
-    
-    def load_logo_from_binary(self, path):
-        """Читає бінарний файл без розширення і повертає ImageTk об'єкт"""
-        if not os.path.exists(path):
-            print(f"Логотип не знайдено за шляхом: {path}")
-            return None
-        
-        try:
-            # 1. Читаємо чисті байти
-            with open(path, 'rb') as f:
-                file_data = f.read()
-            
-            try:
-                # Перевірка: якщо це Base64, воно має бути текстом
-                image_bytes = base64.b64decode(file_data)
-            except Exception:
-                # Якщо помилка декодування (значить це вже була бінарна картинка),
-                # то використовуємо дані як є
-                image_bytes = file_data
-
-
-            # 2. Перетворюємо байти у віртуальний файл
-            data_stream = io.BytesIO(image_bytes)
-            
-            # 3. Відкриваємо як картинку PIL
-            pil_image = Image.open(data_stream)
-
-            width, height = pil_image.size
-            
-            new_width = int(width / 8)
-            new_height = int(height / 8)
-            
-            # Змінюємо розмір (Image.LANCZOS робить картинку чіткою при зменшенні)
-            pil_image = pil_image.resize((new_width, new_height), Image.LANCZOS) # type: ignore
-            
-            # Опціонально: ресайз логотипа, щоб не був гігантським
-            # pil_image.thumbnail((150, 80)) 
-            
-            return ImageTk.PhotoImage(pil_image)
-            
-        except Exception as e:
-            print(f"Помилка завантаження логотипа: {e}")
-            return None
 
     def create_header(self):
-        header_frame = tk.Frame(self.container, bg="#e6ccff", height=100)
-        header_frame.pack(fill=tk.X, pady=0) # pady прибрали, щоб було щільно, або залиште за смаком
+        header = tk.Frame(self.container, bg="white", height=60)
+        header.pack(fill="x", side="top", pady=(0, 2))
+        header.pack_propagate(False)
 
-        # Логотип
-        logo_path = os.path.join("Data/Images/Atelier_logo_small")
-        
-        self.logo_img = self.load_logo_from_binary(logo_path)
+        # ЛОГОТИП
+        logo_frame = tk.Frame(header, bg="white")
+        logo_frame.pack(side="left", padx=20)
+        tk.Label(logo_frame, text="ATELIER", font=("Georgia", 20, "bold"), fg="#4a148c", bg="white").pack()
 
-        if self.logo_img:
-            # Якщо картинка завантажилась - показуємо її
-            tk.Label(header_frame, image=self.logo_img, bg="#e6ccff").pack(side=tk.LEFT, padx=20, pady=5)
-        else:
-            # Якщо файлу немає або помилка - показуємо старий текст як запасний варіант
-            tk.Label(header_frame, text="Atelier", font=("Arial", 24, "bold"), bg="#e6ccff", fg="purple").pack(side=tk.LEFT, padx=20, pady=5)
-        # Кнопки навігації (Зверніть увагу на command)
-        self.create_nav_button(header_frame, "Catalog", lambda: self.switch_content(CatalogView), side=tk.LEFT)
-        self.create_nav_button(header_frame, "Info", lambda: self.switch_content(InfoFrameView), side=tk.LEFT)
-        self.create_nav_button(header_frame, "Editor", command=self.open_editor, side=tk.LEFT)
-        
-        self.create_nav_button(header_frame, "Account", lambda: self.switch_content(AccountView), side=tk.RIGHT)
-        self.create_nav_button(header_frame, "My Orders", lambda: print("Orders clicked"), side=tk.RIGHT)
+        # НАВІГАЦІЯ (Кнопки)
+        nav_frame = tk.Frame(header, bg="white")
+        nav_frame.pack(side="right", padx=30, fill="y")
 
-    def create_nav_button(self, parent, text, command, side):
-        """Допоміжний метод для створення кнопок, щоб не дублювати код"""
-        btn = tk.Button(parent, text=text, font=("Arial", 14), bg="white", fg="black",
-                        activebackground="#d1b3ff", activeforeground="black",
-                        borderwidth=0, cursor="hand2",
-                        command=command)
-        btn.pack(side=side, padx=10, pady=10)
+        # Список вкладок, які будуть у шапці
+        # (MyOrdersView тут немає, бо ми заходимо в нього через акаунт, але це можна змінити)
+        menu_items = [
+            ("CATALOG", CatalogView),
+            ("INFO", InfoFrameView),    
+            ("MY ORDERS", MyOrdersView),
+            ("ACCOUNT", AccountView)
+        ]
+
+        for text, view_class in menu_items:
+            btn = tk.Button(nav_frame, text=text, 
+                            font=("Arial", 14), 
+                            bg="white", fg="#333", 
+                            bd=0, cursor="hand2",
+                            command=lambda vc=view_class: self.switch_content(vc))
+            btn.pack(side="left", padx=15, pady=10)
+            
+            # Зберігаємо кнопку, щоб потім змінювати її стиль
+            self.nav_buttons[view_class] = btn
+
+        # Кнопка адмінки (якщо юзер адмін)
+        if session.current_user and getattr(session.current_user, 'access', '') == 'admin':
+            admin_btn = tk.Button(nav_frame, text="⚙ Editor", bg="#461680", fg="white", 
+                                  font=("Arial", 12, "bold"), cursor="hand2",
+                                  command=self.open_editor)
+            admin_btn.pack(side="left", padx=15)
+
+    def update_active_button_style(self, active_class):
+        """
+        Змінює стиль кнопок. 
+        Примітка: Якщо ми перейшли на MyOrdersView (якого немає в кнопках),
+        всі кнопки стануть "пасивними", що логічно.
+        """
+        active_bg = "#d1b3ff"
+        default_bg = "white"
+
+        for view_cls, btn in self.nav_buttons.items():
+            if view_cls == active_class:
+                btn.config(bg=active_bg, relief="sunken", font=("Arial", 14, "bold"))
+            else:
+                btn.config(bg=default_bg, relief="flat", font=("Arial", 14, "normal"))
 
     def switch_content(self, frame_class):
-        """
-        Метод для заміни контенту в центральній частині.
-        """
-        # 1. Видаляємо все, що зараз є в content_area
+        # 1. Оновлюємо вигляд кнопок
+        self.update_active_button_style(frame_class)
+
+        # 2. Видаляємо старий контент
         for widget in self.content_area.winfo_children():
             widget.destroy()
 
-        # 2. Створюємо новий фрейм
-        # Передаємо self.content_area як parent, щоб він вклався в правильне місце
+        # 3. Створюємо новий фрейм
         new_frame = frame_class(self.content_area, self.controller)
+        
+        # !!! ОСЬ ЦЬОГО РЯДКА НЕ ВИСТАЧАЄ !!!
+        new_frame.main_view = self  # <--- ДОДАЙ ЦЕ
+        
         new_frame.pack(fill="both", expand=True)
         
-        # Зберігаємо посилання на поточний фрейм, якщо треба
         self.current_content_frame = new_frame
-    
+
     def open_editor(self):
-        """Відкриває вікно редактора"""
+        """Відкриває вікно редактора (тільки для адмінів)"""
         from GUI.Editor.editor_frame import EditorFrameView
 
         if self.editor_window is None or not self.editor_window.winfo_exists():
-            self.editor_window = EditorFrameView() # Зберігаємо в self!
+            self.editor_window = EditorFrameView()
         else:
-            self.editor_window.lift() # Піднімаємо наверх, якщо вже відкрито
+            self.editor_window.lift()
             self.editor_window.focus_set()
-
