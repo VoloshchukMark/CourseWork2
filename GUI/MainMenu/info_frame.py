@@ -14,12 +14,13 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
-# --- Базовий клас для таблиць (щоб не дублювати код) ---
+# --- Базовий клас для таблиць ---
 class BaseListView(tk.Frame):
-    def __init__(self, parent, title, collection_name, columns):
+    def __init__(self, parent, title, collection_name, columns, custom_loader=None):
         super().__init__(parent, bg="white")
         self.collection_name = collection_name
         self.columns = columns # Список кортежів: ("code", "Display Name", width)
+        self.custom_loader = custom_loader # [НОВЕ] Функція для специфічного завантаження
         
         # Заголовок
         tk.Label(self, text=title, font=("Arial", 24, "bold"), bg="white", fg="#4a148c").pack(pady=20)
@@ -33,7 +34,6 @@ class BaseListView(tk.Frame):
         scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
         # Таблиця
-        # Витягуємо коди колонок для Treeview
         col_names = [col[0] for col in columns]
         self.tree = ttk.Treeview(table_frame, columns=col_names, show="headings", yscrollcommand=scroll.set)
         
@@ -46,7 +46,7 @@ class BaseListView(tk.Frame):
 
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        # Стиль для смугастих рядків
+        # Стиль
         self.tree.tag_configure('odd', background='white')
         self.tree.tag_configure('even', background='#f2f2f2')
 
@@ -59,14 +59,18 @@ class BaseListView(tk.Frame):
 
     def _fetch_data(self):
         try:
-            # Використовуємо існуючу функцію з пагінацією, але ставимо великий ліміт
-            # Сортування по _id (1 = зростання)
-            data = mongodb_functions.get_documents_paginated(
-                collection_name=self.collection_name,
-                query={},
-                sort=[("_id", 1)], 
-                limit=1000 # Завантажуємо багато, бо це просто інфо-список
-            )
+            if self.custom_loader:
+                # [НОВЕ] Якщо є спец. функція (для постачальників з підрахунком)
+                # Передаємо великий ліміт, щоб показати всіх
+                data = self.custom_loader(skip=0, limit=1000)
+            else:
+                # Стандартне завантаження для інших (Кравці)
+                data = mongodb_functions.get_documents_paginated(
+                    collection_name=self.collection_name,
+                    query={},
+                    sort=[("_id", 1)], 
+                    limit=1000 
+                )
         except Exception as e:
             print(f"Error loading {self.collection_name}: {e}")
             data = []
@@ -85,11 +89,9 @@ class BaseListView(tk.Frame):
         for i, item in enumerate(data):
             values = []
             for col_code, _, _ in self.columns:
-                # Отримуємо значення, якщо немає - прочерк
                 val = item.get(col_code, "-")
                 values.append(val)
             
-            # Чергування кольорів
             tag = 'even' if i % 2 == 0 else 'odd'
             self.tree.insert("", "end", values=values, tags=(tag,))
 
@@ -100,14 +102,14 @@ class AboutUsView(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, bg="white")
         
-        # 1. ЗАВАНТАЖЕННЯ БАНЕРА
+        # БАНЕР
         image_path = "Data/Images/Atelier_logo_big"
         self.banner_img = self.load_image_from_binary(image_path)
         
         if self.banner_img:
             tk.Label(self, image=self.banner_img, bg="white").pack(pady=(20, 10))
 
-        # 2. ТЕКСТ
+        # ТЕКСТ
         tk.Label(self, text="About Us", font=("Arial", 24, "bold"), bg="white", fg="#4a148c").pack(pady=10)
         
         about_text = (
@@ -129,42 +131,41 @@ class AboutUsView(tk.Frame):
             base_height = 150
             w_percent = (base_height / float(pil_image.size[1]))
             w_size = int((float(pil_image.size[0]) * float(w_percent)))
-            pil_image = pil_image.resize((w_size, base_height), Image.LANCZOS) # type:ignore
+            pil_image = pil_image.resize((w_size, base_height), Image.LANCZOS)
             return ImageTk.PhotoImage(pil_image)
         except Exception: return None
 
 
 class SuppliersListView(BaseListView):
     def __init__(self, parent, controller):
-        # Налаштування колонок: (ключ_в_бд, назва_в_шапці, ширина)
         cols = [
-            ("_id", "ID", 20),
-            ("name", "Supplier Name", 100),
-            ("number", "Phone Number", 80),
-            ("address", "Address", 100),
-            ("fabric_supply_amount", "Fabrics Supplied", 20)
+            ("_id", "ID", 50),
+            ("name", "Supplier Name", 200),
+            ("number", "Phone Number", 150),
+            ("address", "Address", 200),
+            ("fabric_supply_amount", "Fabric Count", 120) # [ЗМІНЕНО] Назва колонки
         ]
-        # Переконайтеся, що назва колекції в БД саме "suppliers"
-        super().__init__(parent, "Our Trusted Suppliers", "suppliers", cols)
+        
+        # [ВАЖЛИВО] Передаємо custom_loader, щоб рахувало тканини
+        super().__init__(
+            parent, 
+            "Our Trusted Suppliers", 
+            "suppliers", 
+            cols,
+            custom_loader=mongodb_functions.get_suppliers_paginated
+        )
 
 
 class TailorsListView(BaseListView):
     def __init__(self, parent, controller):
-        # Налаштування колонок: (ключ_в_бд, назва_в_шапці, ширина)
         cols = [
-            ("_id", "ID", 20),
-            ("name", "Master Name", 100),
-            ("number", "Phone Number", 80),
-            ("annual_salary", "Annual Salary", 50),
-            ("quarterly_salary", "Quarterly Salary", 50),
-            ("monthy_salary", "Monthy Salary", 50),
-            
+            ("_id", "ID", 50),
+            ("name", "Master Name", 200),
+            ("number", "Phone", 150),
+            ("email", "Email", 200),
+            ("address", "Address", 200)
         ]
-        
-        # [ВАЖЛИВО] Переконайтеся, що колекція в БД називається "tailors".
-        # Якщо кравці зберігаються в колекції "users" з access="tailor", 
-        # то тут треба буде змінити логіку завантаження (фільтрацію).
-        # Але поки залишаємо окрему колекцію "tailors", як було в редакторі.
+        # Для кравців custom_loader не потрібен (None за замовчуванням)
         super().__init__(parent, "Our Master Tailors", "tailors", cols)
 
 
@@ -193,9 +194,8 @@ class InfoFrameView(tk.Frame):
         tk.Label(sidebar_frame, text="Information", font=("Arial", 16, "bold"), 
                 bg="#f0f0f0", fg="#333").pack(side=tk.TOP, padx=20, pady=30, anchor="w")
 
-        # --- Кнопки навігації ---
         self.create_nav_button(sidebar_frame, "ℹ About Us", lambda: self.open_page(AboutUsView))
-        self.create_nav_button(sidebar_frame, "Suppliers", lambda: self.open_page(SuppliersListView)) # Виправлено назву класу
+        self.create_nav_button(sidebar_frame, "Suppliers", lambda: self.open_page(SuppliersListView))
         self.create_nav_button(sidebar_frame, "Tailors", lambda: self.open_page(TailorsListView))
 
         tk.Label(sidebar_frame, text="EXTRA", font=("Arial", 10, "bold"), 

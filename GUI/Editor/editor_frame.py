@@ -137,7 +137,7 @@ class EditorFrameView(tk.Toplevel):
         editor = BaseInfoEditorView(
             parent=self.content_area,
             controller=self,
-            collection_name="tailors", 
+            collection_name="suppliers", 
             creator_class=SupplierInfoCreatorFrame,
             headers=[
                 ("_id", "ID"), 

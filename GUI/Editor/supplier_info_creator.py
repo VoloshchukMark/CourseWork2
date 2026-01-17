@@ -11,7 +11,7 @@ sys.path.append(project_root)
 class SupplierInfoCreatorFrame(BaseItemCreatorFrame):
     def __init__(self, parent, controller):
         super().__init__(parent, controller, 
-                         collection_name="manufacturers", 
+                         collection_name="suppliers",  # [ВАЖЛИВО] Пишемо в колекцію "suppliers"
                          title_text="New Supplier Registration", 
                          has_image=False)
 
@@ -20,30 +20,33 @@ class SupplierInfoCreatorFrame(BaseItemCreatorFrame):
         self.entry_address = self.create_field("Address:", "entry")
         self.entry_number = self.create_field("Phone Number:", "entry")
 
-
     def get_data_dict(self):
+        # Отримуємо дані з полів
         name = self.entry_name.get().strip() #type: ignore
         address = self.entry_address.get().strip() #type: ignore
         number = self.entry_number.get().strip() #type: ignore
 
+        # Валідація
         if not name or not number:
             from tkinter import messagebox
             messagebox.showwarning("Warning", "Name and Number are required!")
             return None
 
+        # Формуємо документ для БД
         return {
-            "_id": mongodb_functions.get_next_sequence("manufacturer_id"), # Або просто let MongoDB handle IDs
+            # Генеруємо унікальний ID для "supplier_id"
+            "_id": mongodb_functions.get_next_sequence("supplier_id"), 
             "name": name,
             "address": address,
             "number": number,
-            "fabric_supply_amount": 0
+            "fabric_supply_amount": 0 # Початкове значення
         }
 
     def clear_specific_fields(self):
+        # [ВИПРАВЛЕНО] Очищаємо тільки існуючі поля
         self.entry_name.delete(0, tk.END) #type: ignore
         self.entry_address.delete(0, tk.END) #type: ignore
         self.entry_number.delete(0, tk.END) #type: ignore
-        self.entry_.delete(0, tk.END) #type: ignore
 
     def fill_specific_fields(self, data):
         self.clear_specific_fields()
@@ -51,27 +54,3 @@ class SupplierInfoCreatorFrame(BaseItemCreatorFrame):
         self.entry_name.insert(0, data.get("name", "")) #type: ignore
         self.entry_address.insert(0, data.get("address", "")) #type: ignore
         self.entry_number.insert(0, str(data.get("number", ""))) #type: ignore
-
-    def get_manufacturers_with_counts(self):
-        pipeline = [
-            # 1. З'єднуємо колекцію tailors (виробники) з колекцією fabrics
-            {
-                "$lookup": {
-                    "from": "fabrics",                # Увага: перевірте точну назву вашої колекції тканин у MongoDB!
-                    "localField": "_id",              # ID у колекції tailors
-                    "foreignField": "fabric_manufacturer_id", # Поле посилання у колекції fabrics
-                    "as": "matched_fabrics"           # Тимчасове поле з масивом тканин
-                }
-            },
-            # 2. Формуємо результат, замінюючи масив на його довжину
-            {
-                "$project": {
-                    "name": 1,
-                    "address": 1,
-                    "number": 1,
-                    "fabric_supply_amount": { "$size": "$matched_fabrics" }
-                }
-            }
-        ]
-        
-        return list(mongodb_connection.suppliers_collection.aggregate(pipeline))

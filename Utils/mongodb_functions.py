@@ -227,37 +227,39 @@ def get_suppliers_paginated(skip, limit):
         {"$sort": {"_id": 1}},
         {"$skip": skip},
         {"$limit": limit},
+        # Ця частина "приєднує" тканини до постачальника
         {
             "$lookup": {
-                "from": "fabrics",                
-                "localField": "_id",              
-                "foreignField": "fabric_supplier_id", 
-                "as": "related_fabrics"           
+                "from": "fabrics",                # Назва колекції тканин
+                "localField": "_id",              # ID постачальника
+                "foreignField": "fabric_supplier_id", # Поле в тканині, де записаний ID постачальника
+                "as": "related_fabrics"           # Тимчасова назва списку знайдених тканин
             }
         },
+        # Ця частина залишає тільки потрібні поля і рахує кількість
         {
             "$project": {
                 "_id": 1,
                 "name": 1,
                 "number": 1,
-                "fabric_supply_amount": {"$size": "$related_fabrics"} 
+                "fabric_supply_amount": {"$size": "$related_fabrics"} # <-- ТУТ відбувається підрахунок
             }
         }
     ]
-    return list(mongodb_connection.suppliers_collection.aggregate(pipeline))
+    # Виконуємо запит
+    return list(mongodb_connection.db["suppliers"].aggregate(pipeline))
 
 def increment_supplier_fabric_count(supplier_id):
     try:
-        result = mongodb_connection.suppliers_collection.update_one(
+        # Шукаємо саме в SUPPLIERS, а не в tailors
+        collection = mongodb_connection.db["suppliers"] 
+        
+        result = collection.update_one(
             {"_id": supplier_id},       
-            {"$inc": {"fabric_supply_amount": 1}} 
+            {"$inc": {"fabric_supply_amount": 1}}
         )
-        if result.modified_count > 0:
-            print(f"Updated supplier {supplier_id} supply count.")
-        else:
-            print(f"Supplier {supplier_id} not found or count not updated.")   
     except Exception as e:
-        print(f"Error updating supplier count: {e}")
+        print(f"Error: {e}")
 
 def get_orders_by_login(user_login):
     """Отримує всі замовлення для конкретного логіна користувача"""
@@ -274,16 +276,19 @@ def get_orders_by_login(user_login):
 
 def process_fabric_usage(fabric_names_list):
     """
-    Зменшує метраж тканин на 1.
-    Якщо метраж стає <= 0, змінює статус in_stock на False.
+    1. Зменшує метраж тканин на 1.
+    2. Якщо метраж стає <= 0, змінює статус in_stock на False.
+    3. Збільшує рейтинг популярності (popularity) тканини на 1.
+    4. [NEW] Збільшує fabric_supply_amount у постачальника цієї тканини.
     """
-    collection = mongodb_connection.db["fabrics"]
+    fabrics_col = mongodb_connection.db["fabrics"]
+    suppliers_col = mongodb_connection.db["suppliers"] # Підключаємо колекцію постачальників
     
     count_updated = 0
     
     for name in fabric_names_list:
         try:
-            # 1. Знаходимо тканину за назвою (шукаємо по всіх можливих полях)
+            # 1. Знаходимо тканину за назвою
             query = {
                 "$or": [
                     {"fabric_name": name},
@@ -291,25 +296,27 @@ def process_fabric_usage(fabric_names_list):
                     {"title": name}
                 ]
             }
-            fabric = collection.find_one(query)
+            fabric = fabrics_col.find_one(query)
             
             if fabric:
-                # Отримуємо поточний метраж (безпечно конвертуємо в float)
+                # --- ЛОГІКА ТКАНИНИ ---
                 current_width = float(fabric.get("width_in_meters", 0) or 0)
-                
-                # Віднімаємо 1 метр (або стільки, скільки треба на 1 виріб)
                 new_width = current_width - 1
                 
-                # Формуємо оновлення
-                update_fields = {"width_in_meters": new_width}
-                
-                # Якщо тканини не лишилося - ставимо статус "Немає в наявності"
+                update_set = {"width_in_meters": new_width}
                 if new_width <= 0:
-                    update_fields["in_stock"] = False
+                    update_set["in_stock"] = False
                     print(f"DEBUG: Fabric '{name}' is now OUT OF STOCK.")
                 
-                # Записуємо в БД
-                collection.update_one({"_id": fabric["_id"]}, {"$set": update_fields})
+                fabrics_col.update_one(
+                    {"_id": fabric["_id"]}, 
+                    {
+                        "$set": update_set,
+                        "$inc": {"popularity": 1} 
+                    }
+                )
+                
+
                 count_updated += 1
                 
         except Exception as e:
