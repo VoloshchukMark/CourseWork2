@@ -598,21 +598,86 @@ class CatalogView(tk.Frame):
         self.load_more_products()
     
     def price_range_validation(self):
+        """
+        Перевіряє коректність вводу цін залежно від активної вкладки.
+        """
         try:
-            val_from = self.filter_model_price_from_Entry.get()
-            val_to = self.filter_model_price_to_Entry.get()
+            val_from = ""
+            val_to = ""
 
+            # [FIX] Перевіряємо стан перед тим, як чіпати віджети
+            if self.state == "model":
+                # Перевірка на існування віджета (додатковий захист)
+                if hasattr(self, 'filter_model_price_from_Entry') and self.filter_model_price_from_Entry.winfo_exists():
+                    val_from = self.filter_model_price_from_Entry.get()
+                    val_to = self.filter_model_price_to_Entry.get()
+            
+            elif self.state == "fabric": # Або "fabrics", як у вас названо
+                if hasattr(self, 'filter_fabric_price_from_Entry') and self.filter_fabric_price_from_Entry.winfo_exists():
+                    val_from = self.filter_fabric_price_from_Entry.get()
+                    val_to = self.filter_fabric_price_to_Entry.get()
+
+            # Сама валідація (чи це числа)
             if val_from: 
                 float(val_from)
-        
             if val_to:  
                 float(val_to)
 
             return True
+            
         except ValueError:
-            messagebox.showerror("Value error!", "Make sure price range consists of numbers only.")
+            messagebox.showerror("Error", "Price must be a number.")
+            return False
+        except Exception as e:
+            print(f"Validation Error: {e}")
             return False
 
+    def get_filter_query(self):
+        """
+        Збирає фільтри для запиту в БД.
+        """
+        query = {}
+        
+        # 1. Пошук за назвою
+        search_text = ""
+        if hasattr(self, 'search_Entry') and self.search_Entry.winfo_exists():
+            search_text = self.search_Entry.get().strip()
+        
+        if search_text:
+            field_name = "product_name" if self.state == "model" else "fabric_name" 
+            # Для тканин може бути "name" або "fabric_name", перевірте вашу БД
+            # У попередніх файлах ми бачили, що для тканин ви шукаєте по багатьох полях, 
+            # але тут спростимо до основного.
+            query[field_name] = {"$regex": search_text, "$options": "i"}
+
+        # 2. Фільтр ціни
+        price_query = {}
+        val_from = ""
+        val_to = ""
+
+        # [FIX] Знову перевіряємо стан
+        if self.state == "model":
+            if hasattr(self, 'filter_model_price_from_Entry') and self.filter_model_price_from_Entry.winfo_exists():
+                val_from = self.filter_model_price_from_Entry.get()
+                val_to = self.filter_model_price_to_Entry.get()
+            price_field = "base_price" # Або "price"
+            
+        else: # fabric
+            if hasattr(self, 'filter_fabric_price_from_Entry') and self.filter_fabric_price_from_Entry.winfo_exists():
+                val_from = self.filter_fabric_price_from_Entry.get()
+                val_to = self.filter_fabric_price_to_Entry.get()
+            price_field = "price_per_meter" # Або "price"
+
+        # Формуємо запит ціни
+        if val_from:
+            price_query["$gte"] = float(val_from)
+        if val_to:
+            price_query["$lte"] = float(val_to)
+        
+        if price_query:
+            query[price_field] = price_query
+
+        return query
 
 
 

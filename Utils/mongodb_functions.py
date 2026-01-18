@@ -178,7 +178,6 @@ def delete_document(collection_name, doc_id):
         print(f"Delete error: {e}")
         return False
 
-# !!! ВАЖЛИВО: ОНОВЛЕНА ФУНКЦІЯ !!!
 def update_document(collection_name, query, update_data):
     """
     Оновлює документ у колекції. Безпечна версія.
@@ -209,9 +208,6 @@ def update_document(collection_name, query, update_data):
         print(f"Database Update Exception: {e}")
         return False
 
-# ==========================================
-# SPECIFIC LOGIC (Suppliers, etc)
-# ==========================================
 
 def get_fabric_supply_amount_(fabric_supplier_id):
     try:
@@ -241,6 +237,7 @@ def get_suppliers_paginated(skip, limit):
             "$project": {
                 "_id": 1,
                 "name": 1,
+                "address": 1,
                 "number": 1,
                 "fabric_supply_amount": {"$size": "$related_fabrics"} # <-- ТУТ відбувається підрахунок
             }
@@ -324,3 +321,161 @@ def process_fabric_usage(fabric_names_list):
             
     print(f"DEBUG: Processed usage for {count_updated} fabrics.")
     return True
+
+def get_top_suppliers_by_amount(skip, limit):
+    pipeline = [
+        # 1. Зв'язуємо дві колекції за числовими ID
+        {
+            "$lookup": {
+                "from": "fabrics",
+                "localField": "_id",              # Це ваше Int32 поле в постачальниках
+                "foreignField": "fabric_supplier_id", # Це ваше Int32 поле в тканинах
+                "as": "related_fabrics"
+            }
+        },
+        # 2. Перетворюємо масив тканин на цифру (кількість)
+        {
+            "$project": {
+                "_id": 1,
+                "name": 1,
+                "number": 1,
+                "address": 1,
+                # fabric_supply_amount стає числом (розміром масиву)
+                "fabric_supply_amount": {"$size": "$related_fabrics"}
+            }
+        },
+        # 3. Сортуємо від найбільшого до найменшого (-1)
+        {
+            "$sort": {"fabric_supply_amount": -1}
+        },
+        # 4. Пагінація
+        { "$skip": skip },
+        { "$limit": limit }
+    ]
+    
+    try:
+        return list(mongodb_connection.suppliers_collection.aggregate(pipeline))
+    except Exception as e:
+        print(f"Aggregation Error: {e}")
+        return []
+    
+def get_top_fabrics_by_popularity(skip, limit):
+    """
+    Повертає тканини, відсортовані за популярністю (від найбільшої).
+    """
+    try:
+        cursor = mongodb_connection.fabric_collection.find()\
+            .sort("popularity", -1)\
+            .skip(skip)\
+            .limit(limit)
+        return list(cursor)
+    except Exception as e:
+        print(f"Error fetching popular fabrics: {e}")
+        return []
+
+def get_monthly_revenue(year_str):
+    """
+    Повертає словник {місяць_int: сума}, наприклад {1: 5000, 2: 12000...}
+    Приймає рік як рядок ("2023").
+    """
+    pipeline = [
+        # 1. Фільтруємо замовлення тільки за обраний рік
+        # Ми шукаємо рядки order_date, що починаються з "2023-"
+        {
+            "$match": {
+                "order_date": {"$regex": f"^{year_str}-"},
+                "status": {"$ne": "Cancelled"} # (Опціонально) Не рахуємо скасовані
+            }
+        },
+        # 2. Витягуємо місяць і ціну
+        {
+            "$project": {
+                # $substr: [рядок, старт_індекс, довжина]. 
+                # Дата "2023-05-12...", місяць починається з 5-го індексу, довжина 2.
+                "month": {"$substr": ["$order_date", 5, 2]}, 
+                "price": "$total_estimated_price"
+            }
+        },
+        # 3. Групуємо по місяцях і сумуємо ціну
+        {
+            "$group": {
+                "_id": "$month",
+                "total": {"$sum": "$price"}
+            }
+        },
+        # 4. Сортуємо по місяцях
+        { "$sort": {"_id": 1} }
+    ]
+
+    try:
+        results = list(mongodb_connection.orders_collection.aggregate(pipeline))
+        
+        # Перетворюємо результат у зручний словник: {1: 100, 2: 200...}
+        revenue_map = {}
+        for item in results:
+            try:
+                m_idx = int(item["_id"]) # "05" -> 5
+                total = float(item["total"])
+                revenue_map[m_idx] = total
+            except:
+                continue
+        return revenue_map
+    except Exception as e:
+        print(f"Revenue Error: {e}")
+        return {}
+
+def get_monthly_orders_count(year_str):
+    """
+    Повертає словник {місяць_int: кількість_замовлень}.
+    Наприклад: {1: 15, 2: 30, ...}
+    """
+    pipeline = [
+        # 1. Фільтруємо за рік (шукаємо "202x-...")
+        {
+            "$match": {
+                "order_date": {"$regex": f"^{year_str}-"},
+                # Можна відфільтрувати скасовані, якщо треба
+                # "status": {"$ne": "Cancelled"} 
+            }
+        },
+        # 2. Витягуємо місяць
+        {
+            "$project": {
+                "month": {"$substr": ["$order_date", 5, 2]}
+            }
+        },
+        # 3. Групуємо і рахуємо кількість
+        {
+            "$group": {
+                "_id": "$month",
+                "count": {"$sum": 1} # [ЗМІНА] Просто +1 за кожен документ
+            }
+        },
+        # 4. Сортуємо
+        { "$sort": {"_id": 1} }
+    ]
+
+    try:
+        results = list(mongodb_connection.orders_collection.aggregate(pipeline))
+        
+        data_map = {}
+        for item in results:
+            try:
+                m_idx = int(item["_id"]) 
+                count = int(item["count"])
+                data_map[m_idx] = count
+            except:
+                continue
+        return data_map
+    except Exception as e:
+        print(f"Orders Count Error: {e}")
+        return {}
+    
+def get_collection_count(collection_name, query=None):
+    if query is None:
+        query = {}
+    try:
+        return mongodb_connection.db[collection_name].count_documents(query)
+    except Exception as e:
+        print(f"Count Error in {collection_name}: {e}")
+        return 0
