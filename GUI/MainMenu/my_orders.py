@@ -144,7 +144,7 @@ class MyOrdersView(tk.Frame):
 
         query = {
             "customer_login": current_login,
-            "status": {"$ne": "Delivered"}
+            "status": {"$nin": ["Delivered", "New"]}
             }
         sort_order = [("status", 1), ("_id", -1)] 
 
@@ -230,7 +230,7 @@ class MyOrdersView(tk.Frame):
 
         tk.Label(mid_frame, text=data["product_name"], font=("Arial", 18, "bold"), bg=bg_col, anchor="w").pack(fill=tk.X)
         
-        status_color = "#d35400" if is_draft else "#27ae60"
+        status_color = "#9e3d5a" if is_draft else "#ac76c2"
         tk.Label(mid_frame, text=f"Status: {data['status']}", font=("Arial", 11, "bold"), fg=status_color, bg=bg_col, anchor="w").pack(fill=tk.X, pady=(5, 10))
         
         self._create_info_row(mid_frame, "Model Price:", f"{data['base_price']} UAH", bg_col)

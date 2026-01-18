@@ -317,7 +317,7 @@ class AtelierOrdersCountView(tk.Frame):
         
         # --- Заголовок ---
         tk.Label(self, text="Monthly Orders Count", font=("Arial", 24, "bold"), 
-                 bg="white", fg="#e65100").pack(pady=(20, 10))
+                 bg="white", fg="#4a148c").pack(pady=(20, 10))
 
         # --- Панель керування ---
         controls_frame = tk.Frame(self, bg="white")
@@ -430,10 +430,10 @@ class SystemOverviewView(tk.Frame):
         # Створюємо 4 картки
         # (Рядок, Колонка, Заголовок, Значення, Колір)
         
-        self.draw_card(0, 0, "Registered Clients", users, "#42a5f5")   # Blue
-        self.draw_card(0, 1, "Master Tailors", tailors, "#66bb6a")     # Green
-        self.draw_card(1, 0, "Total Fabric Types", fabrics, "#ab47bc") # Purple
-        self.draw_card(1, 1, "Total Orders", orders, "#ffa726")        # Orange
+        self.draw_card(0, 0, "Registered Clients", users, "#d14fc6")  
+        self.draw_card(0, 1, "Master Tailors", tailors, "#72427a")     
+        self.draw_card(1, 0, "Total Fabric Types", fabrics, "#72427a") 
+        self.draw_card(1, 1, "Total Orders", orders, "#d14fc6")        
 
         # Налаштування розтягування сітки
         self.cards_container.grid_columnconfigure(0, weight=1)

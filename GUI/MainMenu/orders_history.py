@@ -129,8 +129,8 @@ class OrdersHistoryWindow(tk.Toplevel):
             
             fg_color = "black"
             if idx == 4: # Status
-                if val == "Delivered": fg_color = "green"
-                elif val == "New": fg_color = "blue"
+                if val == "Delivered": fg_color = "#ac76c2"
+                elif val == "New": fg_color = "#8b7ec4"
                 elif val == "Canceled": fg_color = "red"
 
             lbl = tk.Label(cell, text=str(val), font=("Arial", 10), bg="white", fg=fg_color, 

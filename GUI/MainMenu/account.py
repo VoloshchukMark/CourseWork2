@@ -170,8 +170,8 @@ class AccountView(tk.Frame):
     def create_link_button(self, parent, text, command):
         """Створює кнопку, схожу на текст (без рамок)"""
         btn = tk.Button(parent, text=text, font=("Arial", 12), 
-                        bg="white", fg="#007bff", # Синій колір як у посилань
-                        activebackground="white", activeforeground="#0056b3",
+                        bg="white", fg="#af78ac", # Синій колір як у посилань
+                        activebackground="white", activeforeground="#834f80",
                         bd=0, relief="flat", cursor="hand2", # Курсор руки
                         anchor="w", command=command)
         btn.pack(fill="x", pady=2)

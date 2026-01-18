@@ -71,13 +71,13 @@ class BaseInfoEditorView(tk.Frame):
         cell.grid(row=0, column=len(self.headers), padx=1, pady=1)
         tk.Label(cell, text="Actions", font=("Arial", 11, "bold"), bg="#ddd").pack(fill="both", expand=True)
 
-        self.loading_label = tk.Label(self, text="⏳ Loading data...", 
+        self.loading_label = tk.Label(self, text="Loading data...", 
                                       font=("Arial", 14, "italic"), fg="white", bg="gray50",
                                       padx=20, pady=10, relief="flat")
 
     def get_column_width(self, key):
         if key == "_id": return 5 
-        if "name" in key: return 25
+        if "name" in key: return 20
         if "price" in key: return 10
         if "width" in key: return 15
         if "number" in key: return 15 
@@ -86,6 +86,7 @@ class BaseInfoEditorView(tk.Frame):
         if "supplier" in key: return 20
         if "fabric_supply_amount" in key: return 12
         if "_salary" in key: return 12
+        if "address" in key: return 15
         return 25
 
     # --- ЛОГІКА ЗАВАНТАЖЕННЯ ---
@@ -190,10 +191,10 @@ class BaseInfoEditorView(tk.Frame):
         btn_container = tk.Frame(action_cell, bg="white")
         btn_container.pack(expand=True)
 
-        tk.Button(btn_container, text="Edit", bg="#ffc107", width=5,
+        tk.Button(btn_container, text="Edit", bg="#df47d8", width=5,
                   command=lambda: self.open_edit_window(item_data)).pack(side="left", padx=2)
 
-        tk.Button(btn_container, text="Del", bg="#dc3545", fg="white", width=5,
+        tk.Button(btn_container, text="Del", bg="#a3306a", fg="white", width=5,
                   command=lambda: self.delete_item(item_data)).pack(side="left", padx=2)
 
     def show_loading(self, show):
